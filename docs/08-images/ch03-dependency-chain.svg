@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 380" width="860" height="380" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="860" height="380" fill="#0d1117" rx="12"/>
+  <text x="430" y="34" text-anchor="middle" font-size="16" font-weight="bold" fill="#f0883e">Chaîne de dépendances FastAPI — résolution automatique</text>
+
+  <!-- HTTP Request -->
+  <rect x="20" y="80" width="110" height="40" rx="6" fill="#1f2937" stroke="#4b5563"/>
+  <text x="75" y="100" text-anchor="middle" font-size="11" fill="#e2e8f0">DELETE /articles/5</text>
+  <text x="75" y="114" text-anchor="middle" font-size="9" fill="#6b7280">Authorization: Bearer ...</text>
+
+  <!-- Arrow -->
+  <line x1="130" y1="100" x2="175" y2="100" stroke="#4b5563" stroke-width="2" marker-end="url(#adc)"/>
+
+  <!-- Step 1 : get_token -->
+  <rect x="175" y="65" width="155" height="70" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="253" y="87" text-anchor="middle" font-size="11" font-weight="bold" fill="#60a5fa">1. get_token()</text>
+  <text x="253" y="103" text-anchor="middle" font-size="10" fill="#93c5fd">Extrait "Bearer xyz"</text>
+  <text x="253" y="117" text-anchor="middle" font-size="9" fill="#6b7280">Header Authorization</text>
+  <text x="253" y="128" text-anchor="middle" font-size="9" fill="#6b7280">→ str token</text>
+
+  <!-- Error 401 from step 1 -->
+  <line x1="253" y1="135" x2="253" y2="170" stroke="#ef4444" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#ared2)"/>
+  <rect x="190" y="170" width="126" height="24" rx="4" fill="#3a0000" stroke="#ef4444"/>
+  <text x="253" y="186" text-anchor="middle" font-size="9" fill="#f87171">401 — Jeton manquant</text>
+
+  <!-- Arrow -->
+  <line x1="330" y1="100" x2="385" y2="100" stroke="#3b82f6" stroke-width="2" marker-end="url(#adc)"/>
+  <text x="357" y="93" text-anchor="middle" font-size="9" fill="#3b82f6">token: str</text>
+
+  <!-- Step 2 : get_current_user -->
+  <rect x="385" y="65" width="155" height="70" rx="8" fill="#1a2e1a" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="463" y="87" text-anchor="middle" font-size="11" font-weight="bold" fill="#86efac">2. get_current_user()</text>
+  <text x="463" y="103" text-anchor="middle" font-size="10" fill="#4ade80">Décode + vérifie JWT</text>
+  <text x="463" y="117" text-anchor="middle" font-size="9" fill="#6b7280">Depends(get_token)</text>
+  <text x="463" y="128" text-anchor="middle" font-size="9" fill="#6b7280">→ UtilisateurDansToken</text>
+
+  <!-- Error 401 from step 2 -->
+  <line x1="463" y1="135" x2="463" y2="170" stroke="#ef4444" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#ared2)"/>
+  <rect x="400" y="170" width="126" height="24" rx="4" fill="#3a0000" stroke="#ef4444"/>
+  <text x="463" y="186" text-anchor="middle" font-size="9" fill="#f87171">401 — JWT invalide/expiré</text>
+
+  <!-- Arrow -->
+  <line x1="540" y1="100" x2="595" y2="100" stroke="#22c55e" stroke-width="2" marker-end="url(#adc)"/>
+  <text x="567" y="93" text-anchor="middle" font-size="9" fill="#22c55e">user: User</text>
+
+  <!-- Step 3 : require_admin -->
+  <rect x="595" y="65" width="155" height="70" rx="8" fill="#2d1f3d" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="673" y="87" text-anchor="middle" font-size="11" font-weight="bold" fill="#d8b4fe">3. require_admin()</text>
+  <text x="673" y="103" text-anchor="middle" font-size="10" fill="#c084fc">Vérifie est_admin</text>
+  <text x="673" y="117" text-anchor="middle" font-size="9" fill="#6b7280">Depends(get_current_user)</text>
+  <text x="673" y="128" text-anchor="middle" font-size="9" fill="#6b7280">→ UtilisateurDansToken</text>
+
+  <!-- Error 403 from step 3 -->
+  <line x1="673" y1="135" x2="673" y2="170" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#ayel2)"/>
+  <rect x="610" y="170" width="126" height="24" rx="4" fill="#2d1a00" stroke="#f59e0b"/>
+  <text x="673" y="186" text-anchor="middle" font-size="9" fill="#fbbf24">403 — Non admin</text>
+
+  <!-- Arrow to handler -->
+  <line x1="750" y1="100" x2="810" y2="100" stroke="#a855f7" stroke-width="2" marker-end="url(#adc)"/>
+  <text x="780" y="93" text-anchor="middle" font-size="9" fill="#a855f7">admin: User</text>
+
+  <!-- Handler box -->
+  <rect x="810" y="80" width="40" height="40" rx="6" fill="#3a2000" stroke="#f0883e"/>
+  <text x="830" y="97" text-anchor="middle" font-size="9" fill="#f0883e">delete</text>
+  <text x="830" y="111" text-anchor="middle" font-size="9" fill="#fbbf24">_article</text>
+
+  <!-- Resolution order diagram -->
+  <rect x="20" y="230" width="820" height="120" rx="10" fill="#1f2937" stroke="#4b5563"/>
+  <text x="430" y="252" text-anchor="middle" font-size="13" font-weight="bold" fill="#e2e8f0">Ordre de résolution par FastAPI</text>
+
+  <rect x="40" y="264" width="120" height="32" rx="5" fill="#3a2000" stroke="#f0883e"/>
+  <text x="100" y="284" text-anchor="middle" font-size="10" fill="#f0883e">Requête HTTP reçue</text>
+
+  <line x1="160" y1="280" x2="195" y2="280" stroke="#4b5563" stroke-width="1.5" marker-end="url(#adc)"/>
+
+  <rect x="195" y="264" width="140" height="32" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+  <text x="265" y="280" text-anchor="middle" font-size="10" fill="#60a5fa">1 — get_token()</text>
+  <text x="265" y="292" text-anchor="middle" font-size="9" fill="#6b7280">Header → str</text>
+
+  <line x1="335" y1="280" x2="370" y2="280" stroke="#4b5563" stroke-width="1.5" marker-end="url(#adc)"/>
+
+  <rect x="370" y="264" width="140" height="32" rx="5" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="440" y="280" text-anchor="middle" font-size="10" fill="#86efac">2 — get_current_user()</text>
+  <text x="440" y="292" text-anchor="middle" font-size="9" fill="#6b7280">str → User</text>
+
+  <line x1="510" y1="280" x2="545" y2="280" stroke="#4b5563" stroke-width="1.5" marker-end="url(#adc)"/>
+
+  <rect x="545" y="264" width="140" height="32" rx="5" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="615" y="280" text-anchor="middle" font-size="10" fill="#d8b4fe">3 — require_admin()</text>
+  <text x="615" y="292" text-anchor="middle" font-size="9" fill="#6b7280">User → AdminUser</text>
+
+  <line x1="685" y1="280" x2="720" y2="280" stroke="#4b5563" stroke-width="1.5" marker-end="url(#adc)"/>
+
+  <rect x="720" y="264" width="100" height="32" rx="5" fill="#3a2000" stroke="#f0883e"/>
+  <text x="770" y="280" text-anchor="middle" font-size="10" fill="#f0883e">Gestionnaire</text>
+  <text x="770" y="292" text-anchor="middle" font-size="9" fill="#fbbf24">delete_article()</text>
+
+  <text x="430" y="368" text-anchor="middle" font-size="11" fill="#9ca3af">FastAPI résout les dépendances de l'extérieur vers l'intérieur · Une exception dans la chaîne interrompt tout</text>
+
+  <defs>
+    <marker id="adc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4b5563"/>
+    </marker>
+    <marker id="ared2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#ef4444"/>
+    </marker>
+    <marker id="ayel2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+</svg>

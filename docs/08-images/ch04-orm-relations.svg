@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 460" width="860" height="460" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="860" height="460" fill="#0d1117" rx="12"/>
+  <text x="430" y="34" text-anchor="middle" font-size="16" font-weight="bold" fill="#f0883e">Relations entre modèles SQLAlchemy — 1-à-n, 1-à-1 et n-à-n</text>
+
+  <!-- ====== Utilisateur ====== -->
+  <rect x="30" y="70" width="200" height="160" rx="8" fill="#1f2937" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="30" y="70" width="200" height="32" rx="8" fill="#1e3a5f"/>
+  <text x="130" y="91" text-anchor="middle" font-size="13" font-weight="bold" fill="#60a5fa">Utilisateur</text>
+  <text x="130" y="103" text-anchor="middle" font-size="9" fill="#6b7280">TABLE: utilisateurs</text>
+  <text x="50" y="122" font-size="10" fill="#fbbf24">🔑 id: Integer (PK)</text>
+  <text x="50" y="138" font-size="10" fill="#e2e8f0">username: String(50)</text>
+  <text x="50" y="154" font-size="10" fill="#e2e8f0">email: String(200)</text>
+  <text x="50" y="170" font-size="10" fill="#e2e8f0">hashed_password: String</text>
+  <text x="50" y="186" font-size="10" fill="#e2e8f0">est_actif: Boolean</text>
+  <text x="50" y="202" font-size="10" fill="#4ade80">articles: [Article]</text>
+  <text x="50" y="218" font-size="10" fill="#4ade80">profil: ProfilUtilisateur</text>
+
+  <!-- ====== Article ====== -->
+  <rect x="330" y="70" width="200" height="160" rx="8" fill="#1f2937" stroke="#22c55e" stroke-width="2"/>
+  <rect x="330" y="70" width="200" height="32" rx="8" fill="#1a2e1a"/>
+  <text x="430" y="91" text-anchor="middle" font-size="13" font-weight="bold" fill="#86efac">Article</text>
+  <text x="430" y="103" text-anchor="middle" font-size="9" fill="#6b7280">TABLE: articles</text>
+  <text x="350" y="122" font-size="10" fill="#fbbf24">🔑 id: Integer (PK)</text>
+  <text x="350" y="138" font-size="10" fill="#e2e8f0">titre: String(200)</text>
+  <text x="350" y="154" font-size="10" fill="#e2e8f0">contenu: Text</text>
+  <text x="350" y="170" font-size="10" fill="#e2e8f0">publie: Boolean</text>
+  <text x="350" y="186" font-size="10" fill="#f59e0b">🔗 auteur_id: FK → utilisateurs.id</text>
+  <text x="350" y="202" font-size="10" fill="#3b82f6">auteur: Utilisateur</text>
+  <text x="350" y="218" font-size="10" fill="#a855f7">tags: [Tag]</text>
+
+  <!-- ====== ProfilUtilisateur ====== -->
+  <rect x="30" y="280" width="200" height="130" rx="8" fill="#1f2937" stroke="#f0883e" stroke-width="2"/>
+  <rect x="30" y="280" width="200" height="32" rx="8" fill="#3a2000"/>
+  <text x="130" y="301" text-anchor="middle" font-size="13" font-weight="bold" fill="#f0883e">ProfilUtilisateur</text>
+  <text x="130" y="313" text-anchor="middle" font-size="9" fill="#6b7280">TABLE: profils_utilisateurs</text>
+  <text x="50" y="332" font-size="10" fill="#fbbf24">🔑 id: Integer (PK)</text>
+  <text x="50" y="348" font-size="10" fill="#f59e0b">🔗 utilisateur_id: FK (UNIQUE)</text>
+  <text x="50" y="364" font-size="10" fill="#e2e8f0">bio: Text</text>
+  <text x="50" y="380" font-size="10" fill="#e2e8f0">avatar_url: String</text>
+  <text x="50" y="396" font-size="10" fill="#3b82f6">utilisateur: Utilisateur</text>
+
+  <!-- ====== Tag ====== -->
+  <rect x="630" y="70" width="200" height="110" rx="8" fill="#1f2937" stroke="#a855f7" stroke-width="2"/>
+  <rect x="630" y="70" width="200" height="32" rx="8" fill="#2d1f3d"/>
+  <text x="730" y="91" text-anchor="middle" font-size="13" font-weight="bold" fill="#d8b4fe">Tag</text>
+  <text x="730" y="103" text-anchor="middle" font-size="9" fill="#6b7280">TABLE: tags</text>
+  <text x="650" y="122" font-size="10" fill="#fbbf24">🔑 id: Integer (PK)</text>
+  <text x="650" y="138" font-size="10" fill="#e2e8f0">nom: String(50) UNIQUE</text>
+  <text x="650" y="154" font-size="10" fill="#22c55e">articles: [Article]</text>
+
+  <!-- ====== Table d'association articles_tags ====== -->
+  <rect x="490" y="240" width="200" height="100" rx="8" fill="#1f2937" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="590" y="262" text-anchor="middle" font-size="11" font-weight="bold" fill="#c084fc">articles_tags</text>
+  <text x="590" y="276" text-anchor="middle" font-size="9" fill="#6b7280">Table d'association n-à-n</text>
+  <text x="510" y="296" font-size="10" fill="#f59e0b">🔗 article_id: FK → articles.id (PK)</text>
+  <text x="510" y="312" font-size="10" fill="#f59e0b">🔗 tag_id: FK → tags.id (PK)</text>
+  <text x="590" y="332" text-anchor="middle" font-size="9" fill="#4b5563">Clé primaire composite</text>
+
+  <!-- Arrows -->
+  <!-- Utilisateur → Article (1-à-n) -->
+  <line x1="230" y1="170" x2="330" y2="170" stroke="#22c55e" stroke-width="2" marker-end="url(#aorm)"/>
+  <text x="280" y="162" text-anchor="middle" font-size="10" font-weight="bold" fill="#22c55e">1</text>
+  <text x="325" y="162" text-anchor="middle" font-size="10" font-weight="bold" fill="#22c55e">n</text>
+  <text x="280" y="180" text-anchor="middle" font-size="9" fill="#6b7280">1-à-n</text>
+
+  <!-- Utilisateur → Profil (1-à-1) -->
+  <line x1="130" y1="230" x2="130" y2="280" stroke="#f0883e" stroke-width="2" marker-end="url(#aorm2)"/>
+  <text x="115" y="258" text-anchor="end" font-size="10" font-weight="bold" fill="#f0883e">1</text>
+  <text x="115" y="276" text-anchor="end" font-size="10" font-weight="bold" fill="#f0883e">1</text>
+  <text x="155" y="260" text-anchor="start" font-size="9" fill="#6b7280">1-à-1</text>
+
+  <!-- Article → articles_tags (n-à-n) -->
+  <line x1="530" y1="186" x2="555" y2="240" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aorm3)"/>
+  <!-- Tag → articles_tags -->
+  <line x1="700" y1="180" x2="660" y2="240" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aorm3)"/>
+  <text x="610" y="220" text-anchor="middle" font-size="9" fill="#a855f7">n-à-n via secondary</text>
+
+  <!-- Legend -->
+  <text x="430" y="445" text-anchor="middle" font-size="11" fill="#9ca3af">ForeignKey = contrainte SQL · relationship() = accesseur Python · secondary = table d'association</text>
+
+  <defs>
+    <marker id="aorm" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#22c55e"/>
+    </marker>
+    <marker id="aorm2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f0883e"/>
+    </marker>
+    <marker id="aorm3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#a855f7"/>
+    </marker>
+  </defs>
+</svg>

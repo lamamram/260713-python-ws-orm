@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 340" width="860" height="340" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="860" height="340" fill="#0d1117" rx="12"/>
+  <text x="430" y="34" text-anchor="middle" font-size="16" font-weight="bold" fill="#f0883e">Pipeline de test FastAPI — pytest + TestClient</text>
+
+  <!-- pytest -->
+  <rect x="30" y="80" width="120" height="80" rx="8" fill="#1f2937" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="90" y="102" text-anchor="middle" font-size="12" font-weight="bold" fill="#86efac">pytest</text>
+  <text x="90" y="118" text-anchor="middle" font-size="10" fill="#4ade80">test_creer_tache()</text>
+  <text x="90" y="132" text-anchor="middle" font-size="10" fill="#4ade80">test_get_tache()</text>
+  <text x="90" y="147" text-anchor="middle" font-size="9" fill="#6b7280">Fonctions de test</text>
+
+  <!-- Arrow -->
+  <line x1="150" y1="120" x2="200" y2="120" stroke="#22c55e" stroke-width="2" marker-end="url(#atc)"/>
+
+  <!-- TestClient -->
+  <rect x="200" y="80" width="150" height="80" rx="8" fill="#1f2937" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="275" y="102" text-anchor="middle" font-size="12" font-weight="bold" fill="#60a5fa">TestClient</text>
+  <text x="275" y="118" text-anchor="middle" font-size="10" fill="#93c5fd">client.post("/taches/")</text>
+  <text x="275" y="132" text-anchor="middle" font-size="10" fill="#93c5fd">client.get("/taches/1")</text>
+  <text x="275" y="148" text-anchor="middle" font-size="9" fill="#6b7280">Fondé sur httpx</text>
+
+  <!-- Arrow direct (no TCP) -->
+  <line x1="350" y1="120" x2="400" y2="120" stroke="#3b82f6" stroke-width="2" marker-end="url(#atc)"/>
+  <text x="375" y="112" text-anchor="middle" font-size="8" fill="#3b82f6">Sans TCP</text>
+  <text x="375" y="132" text-anchor="middle" font-size="8" fill="#6b7280">En mémoire</text>
+
+  <!-- FastAPI app -->
+  <rect x="400" y="60" width="200" height="120" rx="8" fill="#1f2937" stroke="#f0883e" stroke-width="2"/>
+  <text x="500" y="82" text-anchor="middle" font-size="12" font-weight="bold" fill="#f0883e">Application FastAPI</text>
+  <rect x="415" y="92" width="170" height="24" rx="4" fill="#3a2000" stroke="#f0883e"/>
+  <text x="500" y="108" text-anchor="middle" font-size="10" fill="#fbbf24">Routeur · Middleware</text>
+  <rect x="415" y="120" width="170" height="24" rx="4" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="500" y="136" text-anchor="middle" font-size="10" fill="#d8b4fe">Dépendances résolues</text>
+  <rect x="415" y="148" width="170" height="24" rx="4" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="500" y="164" text-anchor="middle" font-size="10" fill="#86efac">Validation Pydantic</text>
+
+  <!-- Arrow response -->
+  <line x1="600" y1="120" x2="650" y2="120" stroke="#f0883e" stroke-width="2" marker-end="url(#atc)"/>
+
+  <!-- Response -->
+  <rect x="650" y="80" width="180" height="80" rx="8" fill="#1f2937" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="740" y="102" text-anchor="middle" font-size="12" font-weight="bold" fill="#86efac">Réponse</text>
+  <text x="740" y="118" text-anchor="middle" font-size="10" fill="#4ade80">response.status_code</text>
+  <text x="740" y="132" text-anchor="middle" font-size="10" fill="#4ade80">response.json()</text>
+  <text x="740" y="147" text-anchor="middle" font-size="9" fill="#6b7280">assert status == 201</text>
+
+  <!-- dependency_overrides -->
+  <rect x="400" y="210" width="200" height="90" rx="8" fill="#1f2937" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="500" y="232" text-anchor="middle" font-size="12" font-weight="bold" fill="#fbbf24">dependency_overrides</text>
+  <text x="500" y="249" text-anchor="middle" font-size="10" fill="#f59e0b">Remplacer une dépendance</text>
+  <text x="500" y="264" text-anchor="middle" font-size="9" fill="#6b7280">get_current_user → mock</text>
+  <text x="500" y="278" text-anchor="middle" font-size="9" fill="#6b7280">get_db → db de test</text>
+  <text x="500" y="292" text-anchor="middle" font-size="9" fill="#9ca3af">app.dependency_overrides[dep] = mock</text>
+
+  <!-- Arrow to overrides -->
+  <line x1="500" y1="180" x2="500" y2="210" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ayel3)"/>
+
+  <!-- Caption -->
+  <text x="430" y="322" text-anchor="middle" font-size="11" fill="#9ca3af">TestClient appelle directement FastAPI en mémoire · dependency_overrides remplace les dépendances réelles par des mocks de test</text>
+
+  <defs>
+    <marker id="atc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="ayel3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+</svg>

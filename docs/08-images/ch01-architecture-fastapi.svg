@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 460" width="860" height="460" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Background -->
+  <rect width="860" height="460" fill="#0d1117" rx="12"/>
+
+  <!-- Title -->
+  <text x="430" y="34" text-anchor="middle" font-size="16" font-weight="bold" fill="#f0883e">Architecture interne de FastAPI — Composantes et dépendances</text>
+
+  <!-- Layer labels (left) -->
+  <text x="22" y="100" text-anchor="middle" font-size="10" fill="#6b7280" transform="rotate(-90,22,100)">Réseau</text>
+  <text x="22" y="210" text-anchor="middle" font-size="10" fill="#6b7280" transform="rotate(-90,22,210)">ASGI</text>
+  <text x="22" y="320" text-anchor="middle" font-size="10" fill="#6b7280" transform="rotate(-90,22,320)">Framework</text>
+
+  <!-- === Layer 1 : HTTP / Uvicorn === -->
+  <rect x="40" y="60" width="780" height="80" rx="10" fill="#1f2937" stroke="#f0883e" stroke-width="1.5"/>
+  <text x="430" y="86" text-anchor="middle" font-size="13" font-weight="bold" fill="#f0883e">Uvicorn — Serveur ASGI</text>
+
+  <rect x="80" y="96" width="140" height="32" rx="5" fill="#3a2000" stroke="#f0883e"/>
+  <text x="150" y="116" text-anchor="middle" font-size="11" fill="#fbbf24">uvloop (I/O async)</text>
+
+  <rect x="240" y="96" width="140" height="32" rx="5" fill="#3a2000" stroke="#f0883e"/>
+  <text x="310" y="116" text-anchor="middle" font-size="11" fill="#fbbf24">httptools (parser HTTP)</text>
+
+  <rect x="400" y="96" width="140" height="32" rx="5" fill="#3a2000" stroke="#f0883e"/>
+  <text x="470" y="116" text-anchor="middle" font-size="11" fill="#fbbf24">TLS / HTTP2</text>
+
+  <rect x="560" y="96" width="140" height="32" rx="5" fill="#3a2000" stroke="#f0883e"/>
+  <text x="630" y="116" text-anchor="middle" font-size="11" fill="#fbbf24">Gestion processus</text>
+
+  <!-- Arrow down -->
+  <line x1="430" y1="140" x2="430" y2="158" stroke="#4b5563" stroke-width="2" marker-end="url(#down)"/>
+
+  <!-- === Layer 2 : Starlette === -->
+  <rect x="40" y="158" width="780" height="80" rx="10" fill="#1f2937" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="430" y="182" text-anchor="middle" font-size="13" font-weight="bold" fill="#60a5fa">Starlette — Socle ASGI</text>
+
+  <rect x="80" y="192" width="110" height="32" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+  <text x="135" y="212" text-anchor="middle" font-size="10" fill="#93c5fd">Routage</text>
+
+  <rect x="202" y="192" width="110" height="32" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+  <text x="257" y="212" text-anchor="middle" font-size="10" fill="#93c5fd">Middleware</text>
+
+  <rect x="324" y="192" width="110" height="32" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+  <text x="379" y="212" text-anchor="middle" font-size="10" fill="#93c5fd">WebSocket</text>
+
+  <rect x="446" y="192" width="110" height="32" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+  <text x="501" y="212" text-anchor="middle" font-size="10" fill="#93c5fd">Sessions</text>
+
+  <rect x="568" y="192" width="110" height="32" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+  <text x="623" y="212" text-anchor="middle" font-size="10" fill="#93c5fd">TestClient</text>
+
+  <rect x="690" y="192" width="110" height="32" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+  <text x="745" y="212" text-anchor="middle" font-size="10" fill="#93c5fd">Réponses statiques</text>
+
+  <!-- Arrow down -->
+  <line x1="430" y1="238" x2="430" y2="256" stroke="#4b5563" stroke-width="2" marker-end="url(#down)"/>
+
+  <!-- === Layer 3 : FastAPI === -->
+  <rect x="40" y="256" width="780" height="80" rx="10" fill="#1f2937" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="430" y="280" text-anchor="middle" font-size="13" font-weight="bold" fill="#22c55e">FastAPI — Couche applicative</text>
+
+  <rect x="80" y="290" width="130" height="32" rx="5" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="145" y="310" text-anchor="middle" font-size="10" fill="#86efac">Décorateurs @app.get…</text>
+
+  <rect x="224" y="290" width="130" height="32" rx="5" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="289" y="310" text-anchor="middle" font-size="10" fill="#86efac">Validation Pydantic</text>
+
+  <rect x="368" y="290" width="130" height="32" rx="5" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="433" y="310" text-anchor="middle" font-size="10" fill="#86efac">Inject. dépendances</text>
+
+  <rect x="512" y="290" width="130" height="32" rx="5" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="577" y="310" text-anchor="middle" font-size="10" fill="#86efac">Génération OpenAPI</text>
+
+  <rect x="656" y="290" width="130" height="32" rx="5" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="721" y="310" text-anchor="middle" font-size="10" fill="#86efac">Sérialisation JSON</text>
+
+  <!-- Arrow down -->
+  <line x1="430" y1="336" x2="430" y2="354" stroke="#4b5563" stroke-width="2" marker-end="url(#down)"/>
+
+  <!-- === Layer 4 : Application code === -->
+  <rect x="40" y="354" width="780" height="68" rx="10" fill="#1f2937" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="430" y="376" text-anchor="middle" font-size="13" font-weight="bold" fill="#d8b4fe">Code applicatif — ce que le développeur écrit</text>
+
+  <rect x="80" y="385" width="150" height="26" rx="4" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="155" y="402" text-anchor="middle" font-size="10" fill="#d8b4fe">Modèles Pydantic</text>
+
+  <rect x="248" y="385" width="150" height="26" rx="4" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="323" y="402" text-anchor="middle" font-size="10" fill="#d8b4fe">Fonctions gestionnaires</text>
+
+  <rect x="416" y="385" width="150" height="26" rx="4" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="491" y="402" text-anchor="middle" font-size="10" fill="#d8b4fe">Dépendances métier</text>
+
+  <rect x="584" y="385" width="216" height="26" rx="4" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="692" y="402" text-anchor="middle" font-size="10" fill="#d8b4fe">Routeurs (APIRouter)</text>
+
+  <!-- Pydantic transversal -->
+  <rect x="820" y="256" width="24" height="80" rx="4" fill="#2d1f3d" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="832" y="300" text-anchor="middle" font-size="9" fill="#d8b4fe" transform="rotate(90,832,300)">Pydantic v2</text>
+
+  <!-- Legend -->
+  <text x="430" y="444" text-anchor="middle" font-size="11" fill="#9ca3af">FastAPI hérite de Starlette · Pydantic opère à la couche FastAPI pour la validation et la sérialisation</text>
+
+  <defs>
+    <marker id="down" markerWidth="8" markerHeight="8" refX="4" refY="6" orient="auto">
+      <path d="M0,0 L4,8 L8,0 z" fill="#4b5563"/>
+    </marker>
+  </defs>
+</svg>

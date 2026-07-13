@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400" width="860" height="400" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Background -->
+  <rect width="860" height="400" fill="#0d1117" rx="12"/>
+
+  <!-- Title -->
+  <text x="430" y="34" text-anchor="middle" font-size="16" font-weight="bold" fill="#f0883e">Cycle requête-réponse HTTP dans une API REST FastAPI</text>
+
+  <!-- CLIENT -->
+  <rect x="30" y="70" width="130" height="260" rx="10" fill="#1f2937" stroke="#4b5563"/>
+  <text x="95" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="#e2e8f0">Client</text>
+  <rect x="45" y="104" width="100" height="24" rx="4" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="95" y="120" text-anchor="middle" font-size="10" fill="#86efac">Navigateur</text>
+  <rect x="45" y="136" width="100" height="24" rx="4" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="95" y="152" text-anchor="middle" font-size="10" fill="#86efac">App Mobile</text>
+  <rect x="45" y="168" width="100" height="24" rx="4" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="95" y="184" text-anchor="middle" font-size="10" fill="#86efac">Postman</text>
+  <rect x="45" y="200" width="100" height="24" rx="4" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="95" y="216" text-anchor="middle" font-size="10" fill="#86efac">Service tiers</text>
+
+  <!-- Arrow request -->
+  <line x1="160" y1="165" x2="230" y2="165" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr-blue)"/>
+  <text x="195" y="155" text-anchor="middle" font-size="10" fill="#60a5fa">Requête HTTP</text>
+  <text x="195" y="178" text-anchor="middle" font-size="9" fill="#6b7280">GET /articles/42</text>
+
+  <!-- Arrow response -->
+  <line x1="230" y1="220" x2="160" y2="220" stroke="#22c55e" stroke-width="2" marker-end="url(#arr-green)"/>
+  <text x="195" y="212" text-anchor="middle" font-size="10" fill="#22c55e">Réponse HTTP</text>
+  <text x="195" y="234" text-anchor="middle" font-size="9" fill="#6b7280">200 OK · JSON</text>
+
+  <!-- UVICORN -->
+  <rect x="230" y="70" width="120" height="260" rx="10" fill="#1f2937" stroke="#f0883e" stroke-width="1.5"/>
+  <text x="290" y="92" text-anchor="middle" font-size="12" font-weight="bold" fill="#f0883e">Uvicorn</text>
+  <text x="290" y="108" text-anchor="middle" font-size="10" fill="#fbbf24">Serveur ASGI</text>
+  <rect x="248" y="120" width="84" height="20" rx="3" fill="#3a2000" stroke="#f0883e"/>
+  <text x="290" y="134" text-anchor="middle" font-size="9" fill="#fbbf24">uvloop</text>
+  <rect x="248" y="148" width="84" height="20" rx="3" fill="#3a2000" stroke="#f0883e"/>
+  <text x="290" y="162" text-anchor="middle" font-size="9" fill="#fbbf24">httptools</text>
+  <rect x="248" y="176" width="84" height="20" rx="3" fill="#3a2000" stroke="#f0883e"/>
+  <text x="290" y="190" text-anchor="middle" font-size="9" fill="#fbbf24">TLS / HTTP2</text>
+  <text x="290" y="220" text-anchor="middle" font-size="9" fill="#6b7280">:8000</text>
+  <text x="290" y="236" text-anchor="middle" font-size="9" fill="#6b7280">async I/O</text>
+
+  <!-- Uvicorn to FastAPI -->
+  <line x1="350" y1="180" x2="400" y2="180" stroke="#f0883e" stroke-width="2" marker-end="url(#arr-orange)"/>
+
+  <!-- FASTAPI box -->
+  <rect x="400" y="60" width="250" height="280" rx="10" fill="#1f2937" stroke="#3b82f6" stroke-width="2"/>
+  <text x="525" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="#60a5fa">FastAPI (Starlette)</text>
+
+  <!-- Router -->
+  <rect x="415" y="96" width="220" height="36" rx="6" fill="#1e3a5f" stroke="#3b82f6"/>
+  <text x="525" y="112" text-anchor="middle" font-size="11" font-weight="bold" fill="#93c5fd">Routeur</text>
+  <text x="525" y="126" text-anchor="middle" font-size="9" fill="#6b7280">@app.get · @app.post · @app.put …</text>
+
+  <!-- Pydantic -->
+  <rect x="415" y="142" width="220" height="36" rx="6" fill="#1e3a5f" stroke="#a855f7"/>
+  <text x="525" y="158" text-anchor="middle" font-size="11" font-weight="bold" fill="#d8b4fe">Validation Pydantic</text>
+  <text x="525" y="172" text-anchor="middle" font-size="9" fill="#6b7280">Params · Body · Query → 422 si invalide</text>
+
+  <!-- Dependency Injection -->
+  <rect x="415" y="188" width="220" height="36" rx="6" fill="#1e3a5f" stroke="#22c55e"/>
+  <text x="525" y="204" text-anchor="middle" font-size="11" font-weight="bold" fill="#86efac">Injection de dépendances</text>
+  <text x="525" y="218" text-anchor="middle" font-size="9" fill="#6b7280">Depends() · Auth · DB session</text>
+
+  <!-- Handler -->
+  <rect x="415" y="234" width="220" height="36" rx="6" fill="#3a2000" stroke="#f0883e"/>
+  <text x="525" y="250" text-anchor="middle" font-size="11" font-weight="bold" fill="#f0883e">Gestionnaire (handler)</text>
+  <text x="525" y="264" text-anchor="middle" font-size="9" fill="#fbbf24">def get_article(id: int) → dict</text>
+
+  <!-- OpenAPI -->
+  <rect x="415" y="280" width="220" height="36" rx="6" fill="#1e3a5f" stroke="#60a5fa"/>
+  <text x="525" y="296" text-anchor="middle" font-size="11" font-weight="bold" fill="#93c5fd">Génération OpenAPI</text>
+  <text x="525" y="310" text-anchor="middle" font-size="9" fill="#6b7280">/docs · /redoc · /openapi.json</text>
+
+  <!-- Arrow FastAPI to Response codes -->
+  <line x1="650" y1="200" x2="700" y2="200" stroke="#60a5fa" stroke-width="2" marker-end="url(#arr-blue)"/>
+
+  <!-- Response codes -->
+  <rect x="700" y="80" width="130" height="240" rx="10" fill="#1f2937" stroke="#4b5563"/>
+  <text x="765" y="102" text-anchor="middle" font-size="12" font-weight="bold" fill="#e2e8f0">Réponses</text>
+  <rect x="715" y="114" width="100" height="20" rx="3" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="765" y="128" text-anchor="middle" font-size="10" fill="#22c55e">200 OK</text>
+  <rect x="715" y="140" width="100" height="20" rx="3" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="765" y="154" text-anchor="middle" font-size="10" fill="#22c55e">201 Created</text>
+  <rect x="715" y="166" width="100" height="20" rx="3" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="765" y="180" text-anchor="middle" font-size="10" fill="#22c55e">204 No Content</text>
+  <rect x="715" y="192" width="100" height="20" rx="3" fill="#3a2000" stroke="#f59e0b"/>
+  <text x="765" y="206" text-anchor="middle" font-size="10" fill="#fbbf24">400 Bad Request</text>
+  <rect x="715" y="218" width="100" height="20" rx="3" fill="#3a2000" stroke="#ef4444"/>
+  <text x="765" y="232" text-anchor="middle" font-size="10" fill="#f87171">401 / 403</text>
+  <rect x="715" y="244" width="100" height="20" rx="3" fill="#3a2000" stroke="#ef4444"/>
+  <text x="765" y="258" text-anchor="middle" font-size="10" fill="#f87171">422 Validation</text>
+  <rect x="715" y="270" width="100" height="20" rx="3" fill="#3a2000" stroke="#ef4444"/>
+  <text x="765" y="284" text-anchor="middle" font-size="10" fill="#f87171">500 Server Error</text>
+
+  <!-- Legend -->
+  <text x="430" y="370" text-anchor="middle" font-size="11" fill="#9ca3af">Chaque requête HTTP est routée, validée et injectée avant d'atteindre le gestionnaire métier</text>
+
+  <defs>
+    <marker id="arr-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#60a5fa"/>
+    </marker>
+    <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#22c55e"/>
+    </marker>
+    <marker id="arr-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f0883e"/>
+    </marker>
+  </defs>
+</svg>

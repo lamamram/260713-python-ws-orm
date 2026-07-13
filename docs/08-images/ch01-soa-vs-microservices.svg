@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Background -->
+  <rect width="900" height="480" fill="#0d1117" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" font-size="16" font-weight="bold" fill="#f0883e">SOA vs Microservices — Comparaison des architectures</text>
+
+  <!-- ===== LEFT: SOA ===== -->
+  <text x="225" y="70" text-anchor="middle" font-size="14" font-weight="bold" fill="#58a6ff">Architecture SOA</text>
+
+  <!-- Clients -->
+  <rect x="30" y="90" width="90" height="34" rx="6" fill="#1f2937" stroke="#4b5563"/>
+  <text x="75" y="112" text-anchor="middle" font-size="11" fill="#e2e8f0">Client Web</text>
+  <rect x="30" y="138" width="90" height="34" rx="6" fill="#1f2937" stroke="#4b5563"/>
+  <text x="75" y="160" text-anchor="middle" font-size="11" fill="#e2e8f0">App Mobile</text>
+  <rect x="30" y="186" width="90" height="34" rx="6" fill="#1f2937" stroke="#4b5563"/>
+  <text x="75" y="208" text-anchor="middle" font-size="11" fill="#e2e8f0">ERP Tiers</text>
+
+  <!-- Arrows to ESB -->
+  <line x1="120" y1="107" x2="165" y2="180" stroke="#4b5563" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="120" y1="155" x2="165" y2="185" stroke="#4b5563" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="120" y1="203" x2="165" y2="200" stroke="#4b5563" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ESB -->
+  <rect x="160" y="158" width="130" height="56" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2"/>
+  <text x="225" y="180" text-anchor="middle" font-size="12" font-weight="bold" fill="#60a5fa">ESB</text>
+  <text x="225" y="196" text-anchor="middle" font-size="10" fill="#93c5fd">Enterprise Service Bus</text>
+  <text x="225" y="208" text-anchor="middle" font-size="10" fill="#93c5fd">Routage · Transform.</text>
+
+  <!-- Services -->
+  <rect x="320" y="90" width="110" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="375" y="112" text-anchor="middle" font-size="11" fill="#86efac">Service Facturation</text>
+  <rect x="320" y="148" width="110" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="375" y="170" text-anchor="middle" font-size="11" fill="#86efac">Service Clients</text>
+  <rect x="320" y="206" width="110" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="375" y="228" text-anchor="middle" font-size="11" fill="#86efac">Service Logistique</text>
+  <rect x="320" y="264" width="110" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="375" y="286" text-anchor="middle" font-size="11" fill="#86efac">Service RH</text>
+
+  <!-- ESB to Services -->
+  <line x1="290" y1="178" x2="320" y2="107" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="290" y1="184" x2="320" y2="165" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="290" y1="190" x2="320" y2="223" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="290" y1="196" x2="320" y2="281" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Shared DB -->
+  <rect x="320" y="322" width="110" height="34" rx="6" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="375" y="344" text-anchor="middle" font-size="11" fill="#d8b4fe">Base commune</text>
+  <line x1="375" y1="298" x2="375" y2="322" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="375" y="376" text-anchor="middle" font-size="10" fill="#6b7280">Couplage via DB partagée</text>
+
+  <!-- Divider -->
+  <line x1="455" y1="60" x2="455" y2="430" stroke="#374151" stroke-width="1" stroke-dasharray="6,4"/>
+
+  <!-- ===== RIGHT: Microservices ===== -->
+  <text x="675" y="70" text-anchor="middle" font-size="14" font-weight="bold" fill="#f0883e">Architecture Microservices</text>
+
+  <!-- API Gateway -->
+  <rect x="600" y="90" width="150" height="40" rx="8" fill="#3a2000" stroke="#f0883e" stroke-width="2"/>
+  <text x="675" y="108" text-anchor="middle" font-size="12" font-weight="bold" fill="#f0883e">API Gateway</text>
+  <text x="675" y="122" text-anchor="middle" font-size="10" fill="#fbbf24">Routage · Auth · Rate limit</text>
+
+  <!-- Microservices -->
+  <rect x="480" y="172" width="115" height="52" rx="6" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="538" y="192" text-anchor="middle" font-size="11" font-weight="bold" fill="#86efac">Svc Utilisateurs</text>
+  <text x="538" y="207" text-anchor="middle" font-size="10" fill="#4ade80">FastAPI · DB users</text>
+  <text x="538" y="219" text-anchor="middle" font-size="9" fill="#6b7280">:8001</text>
+
+  <rect x="618" y="172" width="115" height="52" rx="6" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="676" y="192" text-anchor="middle" font-size="11" font-weight="bold" fill="#86efac">Svc Catalogue</text>
+  <text x="676" y="207" text-anchor="middle" font-size="10" fill="#4ade80">FastAPI · DB articles</text>
+  <text x="676" y="219" text-anchor="middle" font-size="9" fill="#6b7280">:8002</text>
+
+  <rect x="756" y="172" width="115" height="52" rx="6" fill="#1a2e1a" stroke="#22c55e"/>
+  <text x="814" y="192" text-anchor="middle" font-size="11" font-weight="bold" fill="#86efac">Svc Commandes</text>
+  <text x="814" y="207" text-anchor="middle" font-size="10" fill="#4ade80">FastAPI · DB orders</text>
+  <text x="814" y="219" text-anchor="middle" font-size="9" fill="#6b7280">:8003</text>
+
+  <!-- Gateway to services -->
+  <line x1="645" y1="130" x2="548" y2="172" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="675" y1="130" x2="676" y2="172" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="705" y1="130" x2="804" y2="172" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- Individual DBs -->
+  <rect x="490" y="256" width="96" height="28" rx="4" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="538" y="274" text-anchor="middle" font-size="10" fill="#d8b4fe">PostgreSQL</text>
+  <line x1="538" y1="224" x2="538" y2="256" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+  <rect x="628" y="256" width="96" height="28" rx="4" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="676" y="274" text-anchor="middle" font-size="10" fill="#d8b4fe">PostgreSQL</text>
+  <line x1="676" y1="224" x2="676" y2="256" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+  <rect x="766" y="256" width="96" height="28" rx="4" fill="#2d1f3d" stroke="#a855f7"/>
+  <text x="814" y="274" text-anchor="middle" font-size="10" fill="#d8b4fe">MongoDB</text>
+  <line x1="814" y1="224" x2="814" y2="256" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+  <text x="675" y="308" text-anchor="middle" font-size="10" fill="#6b7280">Base de données indépendante par service</text>
+
+  <!-- REST communication between services -->
+  <path d="M 596 200 Q 607 240 628 200" fill="none" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr3)"/>
+  <text x="612" y="232" text-anchor="middle" font-size="9" fill="#60a5fa">REST</text>
+
+  <!-- Legend -->
+  <text x="450" y="420" text-anchor="middle" font-size="11" fill="#9ca3af">SOA : services couplés via ESB centralisé  ·  Microservices : services autonomes, DB séparées, API REST légères</text>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4b5563"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f0883e"/>
+    </marker>
+    <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#60a5fa"/>
+    </marker>
+  </defs>
+</svg>
