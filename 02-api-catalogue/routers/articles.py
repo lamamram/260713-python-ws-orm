@@ -1,13 +1,29 @@
 from fastapi import APIRouter, Path, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
+from datetime import datetime
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
-class CreateArticle(BaseModel):
+# ------------ pydantic requests schémas ------------
+class ArticleCreation(BaseModel):
+    titre: str = Field(min_length=3, max_length=200)
+    contenu: str = Field(min_length=10)
+    categorie: Optional[str] = None
+
+# ------------ pydantic responses schémas ------------
+
+class ArticleResponse(BaseModel):
+    id: int
     titre: str
     contenu: str
     publie: bool = False
+    date_creation: datetime
+    categorie: Optional[str] = None
+    # nb-vues est caclulé par le serveur, donc on gère ici ses contraintes
+    nb_vues: int = Field(default=0, ge=0)
+
+# ----------- routes ------------
 
 @router.get("/")
 def list_articles(
@@ -29,14 +45,16 @@ def list_articles(
         "articles": [],
     }
 
-@router.post("/", status_code=201)
-def create_article(article: CreateArticle):
+@router.post("/", status_code=201, response_model=ArticleResponse)
+def create_article(article: ArticleCreation):
     """
     Reçoit un corps JSON :
     {"titre": "Mon article", "contenu": "...", "publie": false}
     """
-    
-    return { "id": 1, **article.model_dump()}
+
+    # REM: on retourne un dictionnaire MAIS 
+    # fastapi va le convertir en ArticleResponse grâce à la déclaration response_model=ArticleResponse
+    return { "id": 1, **article.model_dump(), "date_creation": datetime.now() }
 
 
 @router.get("/{article_id}")
