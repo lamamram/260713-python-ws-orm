@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Path, Query
+from pydantic import BaseModel
 from typing import Optional
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
+
+class CreateArticle(BaseModel):
+    titre: str
+    contenu: str
+    publie: bool = False
 
 @router.get("/")
 def list_articles(
@@ -23,19 +29,14 @@ def list_articles(
         "articles": [],
     }
 
-@router.post("/")
-def create_article(article: dict):
+@router.post("/", status_code=201)
+def create_article(article: CreateArticle):
     """
     Reçoit un corps JSON :
     {"titre": "Mon article", "contenu": "...", "publie": false}
     """
     
-    return {
-        "id": 1, 
-        "titre": article.get("titre"), 
-        "contenu": article.get("contenu"), 
-        "publie": article.get("publie", False)
-    }
+    return { "id": 1, **article.model_dump()}
 
 
 @router.get("/{article_id}")
