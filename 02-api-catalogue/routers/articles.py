@@ -61,3 +61,8 @@ def create_article(article: ArticleCreation):
 def get_article(article_id: int = Path(gt=0, description="L'ID de l'article doit être un entier positif")):
     """Retourne un article fictif identifié par son ID entier."""
     return {"id": article_id, "titre": f"Article numéro {article_id}"}
+
+@router.delete("/{article_id}", status_code=204)
+def delete_article(article_id: int = Path(gt=0, description="L'ID de l'article doit être un entier positif")):
+    """Supprime un article fictif identifié par son ID entier."""
+    return None
