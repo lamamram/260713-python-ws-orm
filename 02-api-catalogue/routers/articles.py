@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Path, Query, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from exceptions import RessourceNonTrouveException
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
@@ -60,6 +61,17 @@ def create_article(article: ArticleCreation):
 @router.get("/{article_id}")
 def get_article(article_id: int = Path(gt=0, description="L'ID de l'article doit être un entier positif")):
     """Retourne un article fictif identifié par son ID entier."""
+    articles = range(1, 100)
+    if article_id not in articles:
+        # raise HTTPException(
+        #     status_code=404, 
+        #     detail=f"Article {article_id} non trouvé"
+        # )
+        raise RessourceNonTrouveException(
+            id=article_id, 
+            resource_type="article"
+        )
+    
     return {"id": article_id, "titre": f"Article numéro {article_id}"}
 
 @router.delete("/{article_id}", status_code=204)
