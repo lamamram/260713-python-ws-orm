@@ -23,6 +23,21 @@ def list_articles(
         "articles": [],
     }
 
+@router.post("/")
+def create_article(article: dict):
+    """
+    Reçoit un corps JSON :
+    {"titre": "Mon article", "contenu": "...", "publie": false}
+    """
+    
+    return {
+        "id": 1, 
+        "titre": article.get("titre"), 
+        "contenu": article.get("contenu"), 
+        "publie": article.get("publie", False)
+    }
+
+
 @router.get("/{article_id}")
 def get_article(article_id: int = Path(gt=0, description="L'ID de l'article doit être un entier positif")):
     """Retourne un article fictif identifié par son ID entier."""
