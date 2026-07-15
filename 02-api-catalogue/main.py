@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import articles
+from routers import articles, auteurs
 
 app = FastAPI(
     title="API Catalogue",
@@ -13,3 +13,4 @@ def read_root():
     return {"message": f"Bienvenue sur {app.title} ! version {app.version}"}
 
 app.include_router(articles.router)
+app.include_router(auteurs.router)
