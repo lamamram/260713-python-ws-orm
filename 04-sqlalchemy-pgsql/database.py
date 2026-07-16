@@ -76,6 +76,10 @@ class Utilisateur(Base):
         back_populates="auteur",
         cascade="all, delete-orphab")  # Relation avec les articles écrits par l'utilisateur
 
+    profil: Mapped["ProfilUtilisateur"] = relationship(
+        back_populates="utilisateur",
+        uselist=False,      # uselist=False → attribut unique, pas une liste
+    )
     def __str__(self):
         """
         Représentation en chaîne de caractères de l'objet Utilisateur.
@@ -100,3 +104,20 @@ class Article(Base):
 
     def __str__(self):
         return f"Article(id={self.id}, titre='{self.titre}', publie={self.publie}, created_at={self.created_at}, auteur_id={self.auteur_id})"
+
+class ProfilUtilisateur(Base):
+    __tablename__ = "profils_utilisateurs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    utilisateur_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("utilisateurs.id"),
+        unique=True,       # unique=True garantit le 1-à-1
+        nullable=False,
+    )
+    bio: Mapped[str] = mapped_column(Text, default="")
+    avatar_url: Mapped[str] = mapped_column(String(500), default="")
+
+    utilisateur: Mapped["Utilisateur"] = relationship(
+        "Utilisateur", back_populates="profil"
+    )
