@@ -47,3 +47,33 @@ try:
         raise RangeError(val, *limits)
 except RangeError as e:
     print(e)  # 20 not in [1, 10]
+
+# %% ------------ notion de générateur -----------------
+
+from sys import getsizeof
+
+def my_range(n):
+    i = 0
+    while i < n:
+        yield i
+        i += 1
+
+n = 5
+# g = my_range(n) # appeler la fonction génératrice créé un objet de type générateur
+# for j in g:
+#     print(j)
+
+for j in my_range(n):  # on peut aussi directement itérer sur le générateur
+    print(j)
+
+# for _ in range(n):
+#   print(next(g))
+
+# intérêt du générateur : il ne stocke pas tous les éléments en mémoire, il les génère à la demande.
+lst = list(range(1000))
+# ---------------------  10   1000
+print(getsizeof(lst))  # 856, 8056
+gen = my_range(1000)
+print(getsizeof(gen))  # 192, 192
+r = range(1000)
+print(getsizeof(r))    # 48, 48
