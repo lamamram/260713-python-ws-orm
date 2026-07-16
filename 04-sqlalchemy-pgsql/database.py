@@ -25,3 +25,17 @@ SessionLocal = sessionmaker(
     autoflush=False, 
     bind=engine
 )
+
+
+def get_db():
+    """
+    1. Fournit une session de base de données SQLAlchemy pour chaque requête FastAPI.
+    en utilisant le mécanisme Depends(get_db) pour rendre la session dispo dans les gestionnaires fastAPI
+    2. sa forme de générateur (yield) permet de temporiser l'execution après le yield 
+    et de de s'assurer que la session est toujours fermée après utilisation, même en cas d'exception.
+    """
+    db = SessionLocal()
+    try:
+        yield db          # Fournit la session
+    finally:
+        db.close()        # Toujours fermer même en cas d'exception
