@@ -3,10 +3,11 @@ from datetime import datetime
 from exceptions import RessourceNonTrouveException
 from dependencies import get_query_params, GetQueryParams
 from schemas.articles import ArticleCreation, ArticleResponse
+from typing import List
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
-@router.get("/")
+@router.get("/", response_model=List[ArticleResponse])
 def list_articles(
     # params est un terme consacré dans fastapi pour désigner les paramètres de requête (query params)
     # on peut utiliser Depends pour injecter une dépendance dans la route
@@ -37,7 +38,7 @@ def create_article(article: ArticleCreation):
     return { "id": 1, **article.model_dump(), "date_creation": datetime.now() }
 
 
-@router.get("/{article_id}")
+@router.get("/{article_id}", response_model=ArticleResponse)
 def get_article(article_id: int = Path(gt=0, description="L'ID de l'article doit être un entier positif")):
     """Retourne un article fictif identifié par son ID entier."""
     articles = range(1, 100)
