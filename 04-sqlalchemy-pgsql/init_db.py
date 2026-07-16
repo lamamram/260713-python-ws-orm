@@ -47,6 +47,54 @@ def init_db():
         session.flush()
         # print(user_normal)
 
+        print("insertion des articles...")
+        article1 = Article(
+            titre="Premier article",
+            contenu="Contenu du premier article",
+            publie=True,
+            auteur_id=user_admin.id  # Utilise l'ID généré après flush()
+        )
+        article2 = Article(
+            titre="Deuxième article",
+            contenu="Contenu du deuxième article",
+            publie=False,
+            auteur_id=user_normal.id  # Utilise l'ID généré après flush()
+        )
+        article3 = Article(
+            titre="Troisième article",
+            contenu="Contenu du troisième article",
+            publie=True,
+            auteur_id=user_normal.id  # Utilise l'ID généré après flush()
+        )
+        session.add_all([article1, article2, article3])
+        session.flush()  # Flush pour obtenir les IDs des articles générés par la base de données
+
+        print("insertion des profiles...")
+        profil1 = ProfilUtilisateur(
+            bio="Je suis l'administrateur du site.",
+            utilisateur_id=user_admin.id  # Utilise l'ID généré après flush()
+        )
+        profil2 = ProfilUtilisateur(
+            bio="Je suis un utilisateur normal.",
+            utilisateur_id=user_normal.id  # Utilise l'ID généré après flush()
+        )
+        session.add_all([profil1, profil2])
+        session.flush()  # Flush pour obtenir les IDs des profils générés par la base de
+
+        print("insertion des tags...")
+        tag1 = Tag(nom="Python")
+        tag2 = Tag(nom="SQLAlchemy")
+        tag3 = Tag(nom="PostgreSQL")
+        session.add_all([tag1, tag2, tag3])
+        session.flush()  # Flush pour obtenir les IDs des tags générés par la base de
+
+        print("association des tags aux articles...")
+        article1.tags.append(tag1)  # Premier article avec le tag Python
+        article1.tags.append(tag2)  # Premier article avec le tag SQLAlchemy
+        article2.tags.append(tag3)  # Deuxième article avec le tag PostgreSQL
+        article3.tags.append(tag1)  # Troisième article avec le tag Python
+         
+
         session.commit()  # Valide la transaction et écrit les changements dans la base de données
 if __name__ == "__main__":
     init_db()
