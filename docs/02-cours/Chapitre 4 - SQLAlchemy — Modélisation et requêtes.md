@@ -75,6 +75,10 @@ session.execute(select(Article).where(Article.publie == True)).scalars().all()  
 
 Cette formation utilise **SQLAlchemy ORM avec la syntaxe 2.0** — la syntaxe moderne depuis SQLAlchemy 2.0 (2023), plus cohérente entre les versions synchrone et asynchrone.
 
+### structure
+![](../08-images/structure.png)
+
+
 ## Installation et configuration
 
 ### Installation
@@ -90,6 +94,9 @@ pip install "sqlalchemy[asyncio]" alembic psycopg2-binary
 ```
 
 ### Engine — connexion à la base de données
+
+![](../08-images/engine.png)
+`create_engine("dialect+driver://username:password@host:port/database")`
 
 L'`Engine` est le point d'entrée de SQLAlchemy. Il encapsule la chaîne de connexion (connection string) et gère un pool de connexions.
 
@@ -119,6 +126,10 @@ engine = create_engine(
 > - SQLite : `sqlite:///./app.db` (relatif) ou `sqlite:////abs/path/app.db`
 > - PostgreSQL : `postgresql://user:pwd@localhost:5432/dbname`
 > - PostgreSQL (async) : `postgresql+asyncpg://user:pwd@localhost:5432/dbname`
+
+### interfaces DBAPI Vs PyOBDC
+
+![](../08-images/dialect.png)
 
 ### Session — cycle de vie des objets
 
