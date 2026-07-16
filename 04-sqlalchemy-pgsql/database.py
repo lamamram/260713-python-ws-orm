@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Integer, String, Boolean, DateTime, Text, ForeignKey, func
+from sqlalchemy import create_engine, Integer, String, Boolean, DateTime, Text, ForeignKey, Table, Column, func
 from sqlalchemy.orm import sessionmaker, DeclarativeBase, Mapped, mapped_column, relationship
 # pip install python-dotenv
 from dotenv import load_dotenv
@@ -54,6 +54,18 @@ class Base(DeclarativeBase):
     """
     pass
 
+#### Many-to-Many relationship between Article and Tag
+# Table d'association, pas un modèle, définie avec Table() car elle n'a pas de modèle ORM propre
+articles_tags = Table(
+    "articles_tags",
+    Base.metadata,
+    ## on a une clé primaire composite sur les deux colonnes pour garantir l'unicité de chaque association article-tag
+    Column("article_id", Integer, ForeignKey("articles.id"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tags.id"), primary_key=True),
+)
+
+#### MODELES (tables) 
+
 class Utilisateur(Base):
     """
     Modèle représentant un utilisateur.
@@ -101,6 +113,10 @@ class Article(Base):
     # sur un objet article = Article(), on a article.auteur
     # grâce à back_populates, on peut faire l'inverse: sur un objet utilisateur = Utilisateur(), on a utilisateur.articles
     auteur: Mapped["Utilisateur"] = relationship(back_populates="articles")
+    tags: Mapped[List["Tag"]] = relationship(
+        secondary=articles_tags, back_populates="articles"
+    )
+
 
     def __str__(self):
         return f"Article(id={self.id}, titre='{self.titre}', publie={self.publie}, created_at={self.created_at}, auteur_id={self.auteur_id})"
@@ -120,4 +136,15 @@ class ProfilUtilisateur(Base):
 
     utilisateur: Mapped["Utilisateur"] = relationship(
         "Utilisateur", back_populates="profil"
+    )
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nom: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+
+    # relations
+    articles: Mapped[list["Article"]] = relationship(
+        secondary=articles_tags, back_populates="tags"
     )
