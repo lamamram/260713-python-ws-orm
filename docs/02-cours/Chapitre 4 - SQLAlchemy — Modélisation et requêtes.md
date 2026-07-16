@@ -267,6 +267,7 @@ class Utilisateur(Base):
         "Article",
         back_populates="auteur",
         cascade="all, delete-orphan",  # Supprime les articles quand l'auteur est supprimé
+        # all = toutes les opérations (insert, update, delete) sont propagées pour les objets liés depuis le python
     )
 ```
 
