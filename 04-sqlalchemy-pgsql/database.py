@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy import create_engine, String, Boolean, DateTime, func
+from sqlalchemy.orm import sessionmaker, DeclarativeBase, Mapped, mapped_column
 # pip install python-dotenv
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 
 load_dotenv()  # charge les variables d'environnement depuis le fichier .env
 
@@ -11,6 +12,8 @@ pg_pass = os.getenv("PG_PASS", "")
 pg_host = os.getenv("PG_HOST", "localhost")
 pg_port = os.getenv("PG_PORT", "5432")
 pg_db = os.getenv("PG_DB", "default")
+
+######################## CONFIGURATION d'un sessions SQLAlchemy pour PostgreSQL ########################
 
 # chaine de connexion (connection string) pour 
 DATABASE_URL = f"postgresql+psycopg2://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
@@ -39,3 +42,37 @@ def get_db():
         yield db          # Fournit la session
     finally:
         db.close()        # Toujours fermer même en cas d'exception
+
+####################### MODELISATION DES MODELES (tables) avec SQLAlchemy #######################
+
+class Base(DeclarativeBase):
+    """
+    Classe de base pour les modèles SQLAlchemy.
+    Tous les modèles (tables) doivent hériter de cette classe.
+    Base permet également de créer des méthodes et des attributs communs à tous les modèles si nécessaire.
+    """
+    pass
+
+class Utilisateur(Base):
+    """
+    Modèle représentant un utilisateur.
+    Chaque instance de cette classe correspond à une ligne dans la table 'utilisateurs'.
+    """
+    __tablename__ = "utilisateurs"  # Nom de la table dans la base de données
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)  # Clé primaire auto-incrémentée
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)  # Nom d'utilisateur unique et obligatoire
+    email: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)  # Mot de passe haché obligatoire
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)  # Indique si l'utilisateur est actif, par défaut True
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)  # Indique si l'utilisateur est administrateur, par défaut False
+    # Date de création, par défaut la date actuelle calculée par la base de données 
+    # func permet d'utiliser les fonctions de la bdd ici NOW()
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), nullable=False)
+
+    def __str__(self):
+        """
+        Représentation en chaîne de caractères de l'objet Utilisateur.
+        Utile pour le débogage et la journalisation.
+        """
+        return f"Utilisateur(id={self.id}, username='{self.username}', email='{self.email}', active={self.active}, is_admin={self.is_admin}, created_at={self.created_at})"

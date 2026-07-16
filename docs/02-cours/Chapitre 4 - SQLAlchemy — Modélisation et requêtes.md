@@ -177,7 +177,7 @@ from datetime import datetime
 class Utilisateur(Base):
     __tablename__ = "utilisateurs"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     email: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -213,6 +213,7 @@ from sqlalchemy import (
     Float,            # Flottant
     Numeric,          # Décimal précis (argent)
     String,           # VARCHAR(n)
+    CHAR,             # CHAR(n)
     Text,             # TEXT illimité
     Boolean,          # BOOLEAN
     Date,             # DATE
@@ -236,7 +237,7 @@ from sqlalchemy.orm import relationship
 class Article(Base):
     __tablename__ = "articles"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     titre: Mapped[str] = mapped_column(String(200), nullable=False)
     contenu: Mapped[str] = mapped_column(Text, nullable=False)
     publie: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
