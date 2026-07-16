@@ -38,6 +38,7 @@ def init_db():
             hashed_password="roottoor"
         )
         user_normal.hash_password()
+        # add et add_all() génèrent les requêtes INSERT mais ne valident pas encore la transaction
         session.add_all([user_admin, user_normal])
         # print(user_normal)
         
@@ -93,7 +94,7 @@ def init_db():
         article1.tags.append(tag2)  # Premier article avec le tag SQLAlchemy
         article2.tags.append(tag3)  # Deuxième article avec le tag PostgreSQL
         article3.tags.append(tag1)  # Troisième article avec le tag Python
-         
+
 
         session.commit()  # Valide la transaction et écrit les changements dans la base de données
 if __name__ == "__main__":
