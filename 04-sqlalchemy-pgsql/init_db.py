@@ -2,7 +2,7 @@
 script d'initialisation de la base de données PostgreSQL avec SQLAlchemy
 utilise une fonction init_db() idempotente pour créer les tables si elles n'existent pas déjà
 """
-
+from sqlalchemy import select, func
 from database import engine, SessionLocal, Base, Utilisateur, Article, Tag, ProfilUtilisateur
 import sys
 
@@ -97,5 +97,26 @@ def init_db():
 
 
         session.commit()  # Valide la transaction et écrit les changements dans la base de données
+
+        print("Vérification des données insérées :")
+        # requête SELECT * pour vérifier que l'utilisateur admin a bien été inséré
+        stmt = select(Utilisateur).where(Utilisateur.username == "admin")
+        
+        # execute retourne un Result qui n'est pas directement exploitable
+        # scalars retourne un générateur d'objets ScalarResult
+        # .all() retourne une liste d'objets Utilisateur et .first() retourne le premier objet Utilisateur ou None si aucun résultat
+        # admin = session.execute(stmt).scalars().first()
+        
+        admin = session.execute(stmt).scalar_one_or_none()
+        if admin:
+            print(f"Utilisateur admin trouvé : {admin.username}, email : {admin.email}")
+        else:
+            print("Utilisateur admin non trouvé.")
+        
+        # requête SELECT COUNT(1) pour vérifier le nombre d'articles insérés
+        stmt_count = select(func.count()).select_from(Article)
+        article_count = session.execute(stmt_count).scalar_one()
+        print(f"Nombre d'articles insérés : {article_count}")
+
 if __name__ == "__main__":
     init_db()
