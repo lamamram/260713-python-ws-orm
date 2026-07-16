@@ -447,6 +447,14 @@ def downgrade() -> None:
 
 ### Créer des enregistrements (INSERT)
 
+* niveaux de persistence d'un objet dans la Session : transient → pending → persistent → detached
+
+* flush() : synchronise les objets en cache mémoire avec la DB mais ne commit pas la transaction
+
+* commit() : commit la transaction et rend les objets persistants
+
+![](../08-images/persistance.png)
+
 ```python
 from sqlalchemy.orm import Session
 from models import Utilisateur, Article

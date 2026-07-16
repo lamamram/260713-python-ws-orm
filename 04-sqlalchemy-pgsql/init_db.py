@@ -40,6 +40,7 @@ def init_db():
         user_normal.hash_password()
         session.add_all([user_admin, user_normal])
         # print(user_normal)
+        
         # flush pour obtenir les IDs générés, les valeurs par défaut et les valeurs calculées par la base de données
         # écrit dans le cache de la session mais ne valide pas encore la transaction
         # ce cache == identity map: permet de retrouver les objets déjà présents dans la session et d'éviter les doublons
