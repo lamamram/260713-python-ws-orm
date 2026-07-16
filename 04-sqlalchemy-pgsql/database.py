@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 from typing import List
+# pip install bcrypt
+import bcrypt
 
 load_dotenv()  # charge les variables d'environnement depuis le fichier .env
 
@@ -22,6 +24,8 @@ engine = create_engine(
     DATABASE_URL,
     pool_size=15,  # nombre maximum de connexions persistentes dispos dans le pool pour les utilisateurs
     max_overflow=5,  # nombre maximum de connexions supplémentaires au-delà du pool_size en cas de pic
+    # mode debug: affiche les requêtes SQL générées par SQLAlchemy dans la console
+    echo=True
 )
 
 SessionLocal = sessionmaker(
@@ -86,7 +90,7 @@ class Utilisateur(Base):
     ## relations
     articles: Mapped[List["Article"]] = relationship(
         back_populates="auteur",
-        cascade="all, delete-orphab")  # Relation avec les articles écrits par l'utilisateur
+        cascade="all, delete-orphan")  # Relation avec les articles écrits par l'utilisateur
 
     profil: Mapped["ProfilUtilisateur"] = relationship(
         back_populates="utilisateur",
@@ -98,6 +102,16 @@ class Utilisateur(Base):
         Utile pour le débogage et la journalisation.
         """
         return f"Utilisateur(id={self.id}, username='{self.username}', email='{self.email}', active={self.active}, is_admin={self.is_admin}, created_at={self.created_at})"
+    
+    def hash_password(self):
+        """
+        Hache le mot de passe en clair et le stocke dans l'attribut hashed_password.
+        utilisant bcrypt.hashpw() pour le hachage sécurisé.
+        """
+        self.hashed_password = bcrypt.hashpw(
+            self.hashed_password.encode('utf-8'),
+            bcrypt.gensalt()
+        ).decode('utf-8')
 
 class Article(Base):
     __tablename__ = "articles"
