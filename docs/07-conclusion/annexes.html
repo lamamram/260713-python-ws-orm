@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Support interactif de formation Python Avancé : FastAPI + ORM : 📎 — Annexes">
+<title>📎 — Annexes</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --primary: #f0883e; --primary2: #ffa657;
+  --success: #3fb950; --warning: #d29922; --danger: #f85149;
+  --text: #e6edf3; --text-muted: #8b949e; --code-bg: #010409; --radius: 10px;
+  --topbar-h: 3.25rem;
+}
+:root[data-theme="light"] {
+  --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+  --primary: #bc4c00; --primary2: #953800;
+  --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+  --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+    --primary: #bc4c00; --primary2: #953800;
+    --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+    --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.7; transition: background .2s, color .2s; }
+
+/* TOPBAR — fixe, ne bouge jamais au scroll */
+.topbar {
+  position: sticky; top: 0; z-index: 200; height: var(--topbar-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .9rem; padding: 0 1rem;
+}
+.topbar .badge {
+  flex: 0 0 auto; background: var(--primary); color: #0d1117;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.topbar a.chapter-title {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: .5rem;
+  text-decoration: none; color: var(--text); font-weight: 700; font-size: .92rem;
+  overflow: hidden;
+}
+.topbar a.chapter-title:hover { color: var(--primary); }
+.topbar a.chapter-title .num { color: var(--primary); flex: 0 0 auto; }
+.topbar a.chapter-title .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-links { flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; }
+.topbar-link {
+  white-space: nowrap; padding: .4rem .8rem; border: 1px solid var(--border); border-radius: 20px;
+  font-size: .8rem; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: all .2s;
+}
+.topbar-link:hover { color: var(--primary); border-color: var(--primary); }
+.theme-toggle {
+  flex: 0 0 auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: .4rem .7rem; border-radius: 20px; font-size: .8rem; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.theme-toggle:hover { border-color: var(--primary); }
+
+/* LAYOUT — sidebar gauche + contenu */
+.layout { display: flex; align-items: flex-start; }
+.sidebar {
+  flex: 0 0 280px; width: 280px;
+  position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem 1rem 2rem;
+}
+.objectifs {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .8rem 1rem; margin-bottom: 1.25rem;
+}
+.objectifs-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.objectifs ul { margin: .4rem 0 0 1.1rem; }
+.objectifs li { font-size: .82rem; color: var(--text-muted); margin-bottom: .3rem; line-height: 1.4; }
+.side-nav { display: flex; flex-direction: column; gap: .1rem; }
+.side-nav button {
+  text-align: left; background: none; border: none; border-left: 3px solid transparent;
+  color: var(--text-muted); padding: .55rem .7rem; font-size: .87rem; font-weight: 500;
+  cursor: pointer; border-radius: 0 6px 6px 0; transition: all .15s;
+}
+.side-nav button:hover { color: var(--text); background: var(--surface2); }
+.side-nav button.active { color: var(--primary); border-left-color: var(--primary); background: var(--surface2); font-weight: 600; }
+.side-nav-sep { height: 1px; background: var(--border); margin: .6rem 0; }
+
+.content { flex: 1 1 auto; min-width: 0; }
+.tab-content { display: none; padding: 2rem 2.5rem 4rem; max-width: 1100px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* SECTIONS */
+h2 { font-size: 1.25rem; color: var(--primary2); margin: 1.8rem 0 .8rem; border-left: 3px solid var(--primary); padding-left: .75rem; }
+h3 { font-size: 1.05rem; color: var(--text); margin: 1.4rem 0 .6rem; }
+p { margin-bottom: .9rem; }
+ul, ol { padding-left: 1.4rem; margin-bottom: .9rem; }
+li { margin-bottom: .35rem; }
+
+/* RESSOURCES — liste sous forme de cartes plutôt que de puces */
+#tab-ressources ul { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: .5rem; }
+#tab-ressources li {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .75rem 1rem; margin-bottom: 0;
+}
+#tab-ressources li a { color: var(--primary2); font-weight: 600; text-decoration: none; }
+#tab-ressources li a:hover { text-decoration: underline; }
+
+/* AIDE — divulgation progressive pas-à-pas */
+details.aide { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+details.aide summary {
+  cursor: pointer; padding: .8rem 1.1rem; font-weight: 600; color: var(--primary);
+  list-style: none; display: flex; align-items: center; gap: .5rem;
+}
+details.aide summary::-webkit-details-marker { display: none; }
+details.aide summary::before { content: "▶"; font-size: .7rem; transition: transform .15s; }
+details.aide[open] summary::before { transform: rotate(90deg); }
+details.aide .aide-body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); margin-top: .2rem; padding-top: 1rem; }
+img { max-width: 100%; height: auto; display: block; margin: 1rem auto; }
+
+/* EXERCICE — un bloc par atelier, avec son aide pas-à-pas attachée juste en dessous */
+.exercice { padding: 1.3rem 0; border-top: 1px solid var(--border); }
+.exercice:first-of-type { border-top: none; padding-top: 0; }
+.exercice h3 { margin: 0 0 .8rem; color: var(--primary2); }
+
+/* CALLOUTS */
+.callout { border-radius: var(--radius); padding: .9rem 1.1rem; margin: 1.2rem 0; border-left: 4px solid; background: var(--surface2); }
+.callout.note   { border-color: var(--primary); }
+.callout.tip    { border-color: var(--success); }
+.callout.warn   { border-color: var(--warning); }
+.callout.danger { border-color: var(--danger); }
+.callout p:last-child { margin-bottom: 0; }
+.callout-title { font-weight: 700; font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+.callout.note   .callout-title { color: var(--primary); }
+.callout.tip    .callout-title { color: var(--success); }
+.callout.warn   .callout-title { color: var(--warning); }
+.callout.danger .callout-title { color: var(--danger); }
+
+/* TABLES */
+.table-wrap { overflow-x: auto; margin: 1rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th { background: var(--surface2); color: var(--primary2); text-align: left; padding: .6rem .9rem; font-weight: 600; border: 1px solid var(--border); }
+td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+tr:hover td { background: var(--surface2); }
+
+/* CODE */
+.code-block { position: relative; margin: 1rem 0; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1rem 1rem 1.2rem; overflow-x: auto; }
+code { font-family: 'Consolas', 'Cascadia Code', monospace; font-size: .88rem; color: var(--primary2); }
+p code, li code, td code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .05rem .35rem; }
+.copy-btn {
+  position: absolute; top: .5rem; right: .5rem;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  padding: .25rem .6rem; font-size: .75rem; border-radius: 5px; cursor: pointer; transition: all .2s;
+}
+.copy-btn:hover { background: var(--primary); color: #0d1117; }
+.copy-btn.copied { background: var(--success); color: #0d1117; }
+
+/* QUIZ */
+.quiz-question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; margin-bottom: 1.2rem; }
+.quiz-question h4 { color: var(--primary2); margin-bottom: .9rem; font-size: .98rem; }
+.quiz-options { display: flex; flex-direction: column; gap: .5rem; }
+.quiz-option {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: .6rem .9rem; cursor: pointer;
+  font-size: .9rem; transition: all .2s; text-align: left; color: var(--text);
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--primary); }
+.quiz-option.correct { border-color: var(--success); color: var(--success); }
+.quiz-option.wrong   { border-color: var(--danger);  color: var(--danger);  }
+.quiz-option:disabled { cursor: default; }
+.quiz-feedback { margin-top: .6rem; font-size: .87rem; color: var(--text-muted); font-style: italic; }
+.quiz-score {
+  background: var(--surface2); border: 1px solid var(--primary);
+  border-radius: var(--radius); padding: 1.5rem; text-align: center; margin-top: 1.5rem; display: none;
+}
+.quiz-score .score-num { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+.quiz-score p { color: var(--text-muted); margin-top: .4rem; }
+.btn-restart { background: var(--primary); color: #0d1117; border: none; padding: .6rem 1.4rem; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 1rem; font-size: .9rem; }
+.btn-restart:hover { background: var(--primary2); }
+
+/* RESPONSIVE — sidebar devient une barre horizontale sous 900px */
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: static; width: 100%; height: auto; max-height: 40vh;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .side-nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: .3rem; }
+  .side-nav button { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; border-radius: 6px 6px 0 0; }
+  .side-nav button.active { border-left-color: transparent; border-bottom-color: var(--primary); }
+  .side-nav-sep { display: none; }
+  .tab-content { padding: 1.5rem 1.2rem 3rem; }
+  .topbar a.chapter-title { font-size: .82rem; }
+}
+</style>
+<link rel="stylesheet" href="assets/course-common.css">
+<script src="assets/course-common.js" defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="badge">Python Avancé : FastAPI + ORM</span>
+  <a class="chapter-title" href="index.html" title="Retour à l'accueil de la formation">
+    <span class="num">📎</span><span class="txt">Annexes</span>
+  </a>
+  <div class="topbar-links">
+    
+    <a class="topbar-link" href="index.html">Sommaire</a>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Basculer entre thème clair et sombre">
+      <span id="theme-icon">🌙</span> <span id="theme-label">Sombre</span>
+    </button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    
+    <nav class="side-nav" id="main-nav">
+      <button class="active" onclick="showTab('cheat-sheet-python-avance-fastapi-orm')">Cheat-Sheet — Python Avancé : FastAPI + ORM</button>
+  <button class="" onclick="showTab('glossaire-python-avance-fastapi-orm')">Glossaire — Python Avancé : FastAPI + ORM</button>
+  <button class="" onclick="showTab('ressources-python-avance-fastapi-orm')">Ressources — Python Avancé : FastAPI + ORM</button>
+    </nav>
+  </aside>
+  <div class="content">
+    <div id="tab-cheat-sheet-python-avance-fastapi-orm" class="tab-content active">
+<h2>FastAPI — Démarrage rapide</h2>
+<div class="code-block"><pre><code class="language-bash">pip install &quot;fastapi[standard]&quot;       # Installe FastAPI + Uvicorn
+fastapi dev main.py                   # Serveur de développement (--reload)
+uvicorn main:app --reload             # Equivalent Uvicorn direct
+# Swagger UI  → http://localhost:8000/docs
+# ReDoc       → http://localhost:8000/redoc
+# OpenAPI JSON→ http://localhost:8000/openapi.json
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>FastAPI — Routes et paramètres</h2>
+<div class="code-block"><pre><code class="language-python">from fastapi import FastAPI, APIRouter, Depends, HTTPException, Path, Query
+from typing import Optional
+
+app = FastAPI(title=&quot;Mon API&quot;)
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+# Paramètre de chemin
+@router.get(&quot;/{id}&quot;)
+def get(id: int = Path(gt=0)): ...
+
+# Paramètre de requête
+@router.get(&quot;/&quot;)
+def list(page: int = Query(1, ge=1), taille: int = Query(10, le=100),
+         q: Optional[str] = None): ...
+
+# Corps JSON (modèle Pydantic)
+@router.post(&quot;/&quot;, status_code=201)
+def create(article: ArticleCreation): ...
+
+app.include_router(router)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>Codes de statut courants</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Signification</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>200</td>
+<td>OK</td>
+<td>GET, PATCH, PUT réussis</td>
+</tr>
+<tr>
+<td>201</td>
+<td>Created</td>
+<td>POST réussi</td>
+</tr>
+<tr>
+<td>204</td>
+<td>No Content</td>
+<td>DELETE réussi</td>
+</tr>
+<tr>
+<td>400</td>
+<td>Bad Request</td>
+<td>Requête malformée</td>
+</tr>
+<tr>
+<td>401</td>
+<td>Unauthorized</td>
+<td>Non authentifié (jeton manquant/invalide)</td>
+</tr>
+<tr>
+<td>403</td>
+<td>Forbidden</td>
+<td>Authentifié mais non autorisé</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Not Found</td>
+<td>Ressource inexistante</td>
+</tr>
+<tr>
+<td>409</td>
+<td>Conflict</td>
+<td>Conflit (doublon email, etc.)</td>
+</tr>
+<tr>
+<td>422</td>
+<td>Unprocessable Entity</td>
+<td>Validation Pydantic échouée</td>
+</tr>
+<tr>
+<td>500</td>
+<td>Internal Server Error</td>
+<td>Exception non gérée</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Pydantic v2</h2>
+<div class="code-block"><pre><code class="language-python">from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List
+
+class ArticleCreation(BaseModel):
+    titre: str = Field(min_length=3, max_length=200)
+    contenu: str = Field(min_length=10)
+    tags: List[str] = Field(default_factory=list)
+
+class ArticleReponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)  # Pour SQLAlchemy
+    id: int
+    titre: str
+    auteur: AuteurSchema
+
+# Sérialisation
+obj.model_dump()                    # → dict
+obj.model_dump(exclude_none=True)   # → dict sans les None (pour PATCH)
+ArticleReponse.model_validate(orm_obj)  # Depuis un objet SQLAlchemy
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>Gestion des erreurs</h2>
+<div class="code-block"><pre><code class="language-python">from fastapi import HTTPException
+
+raise HTTPException(status_code=404, detail=&quot;Introuvable&quot;)
+raise HTTPException(status_code=401, detail=&quot;Jeton invalide&quot;,
+                    headers={&quot;WWW-Authenticate&quot;: &quot;Bearer&quot;})
+
+# Handler global
+@app.exception_handler(MonException)
+async def handler(request, exc):
+    return JSONResponse(status_code=422, content={&quot;erreur&quot;: str(exc)})
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>Injection de dépendances</h2>
+<div class="code-block"><pre><code class="language-python">from fastapi import Depends
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get_db)):
+    ...
+
+@router.get(&quot;/profil&quot;)
+def profil(user = Depends(get_current_user)):
+    return user
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>JWT (python-jose + passlib)</h2>
+<div class="code-block"><pre><code class="language-python">from jose import jwt, JWTError
+from passlib.context import CryptContext
+
+pwd = CryptContext(schemes=[&quot;bcrypt&quot;])
+pwd.hash(&quot;secret&quot;)                         # Hacher un mot de passe
+pwd.verify(&quot;secret&quot;, &quot;$2b$12$...&quot;)         # Vérifier
+
+jwt.encode({&quot;sub&quot;: &quot;1&quot;, &quot;exp&quot;: ...}, KEY, algorithm=&quot;HS256&quot;)  # Créer un jeton
+jwt.decode(token, KEY, algorithms=[&quot;HS256&quot;])                   # Décoder/vérifier
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>SQLAlchemy 2.0 — Démarrage</h2>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase, Session
+
+engine = create_engine(&quot;sqlite:///./app.db&quot;, connect_args={&quot;check_same_thread&quot;: False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+class Base(DeclarativeBase): pass
+Base.metadata.create_all(bind=engine)  # Créer toutes les tables (dev seulement)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>SQLAlchemy 2.0 — Modèles</h2>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import String, Integer, Boolean, ForeignKey, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime
+
+class Utilisateur(Base):
+    __tablename__ = &quot;utilisateurs&quot;
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    est_actif: Mapped[bool] = mapped_column(Boolean, default=True)
+    date_creation: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    articles: Mapped[list[&quot;Article&quot;]] = relationship(&quot;Article&quot;, back_populates=&quot;auteur&quot;)
+
+class Article(Base):
+    __tablename__ = &quot;articles&quot;
+    id: Mapped[int] = mapped_column(primary_key=True)
+    auteur_id: Mapped[int] = mapped_column(ForeignKey(&quot;utilisateurs.id&quot;))
+    auteur: Mapped[&quot;Utilisateur&quot;] = relationship(&quot;Utilisateur&quot;, back_populates=&quot;articles&quot;)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>SQLAlchemy 2.0 — CRUD</h2>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import select, update, delete
+
+# CREATE
+obj = Utilisateur(username=&quot;alice&quot;, ...); db.add(obj); db.commit(); db.refresh(obj)
+
+# READ
+user = db.get(Utilisateur, 1)                                  # Par PK
+user = db.execute(select(Utilisateur).where(...)).scalar_one_or_none()
+users = db.execute(select(Utilisateur).limit(10)).scalars().all()
+
+# UPDATE
+user.email = &quot;new@ex.com&quot;; db.commit()
+db.execute(update(Utilisateur).where(...).values(est_actif=False)); db.commit()
+
+# DELETE
+db.delete(user); db.commit()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>SQLAlchemy — Eager loading</h2>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy.orm import joinedload, selectinload
+
+# to-one (auteur d'un article) → JOIN
+stmt = select(Article).options(joinedload(Article.auteur))
+articles = db.execute(stmt).unique().scalars().all()
+
+# to-many (tags d'un article) → IN
+stmt = select(Article).options(selectinload(Article.tags))
+articles = db.execute(stmt).scalars().all()
+
+# Combiner
+stmt = select(Article).options(
+    joinedload(Article.auteur),
+    selectinload(Article.tags),
+)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>SQLAlchemy — Relations n-à-n</h2>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import Table, Column
+
+# Table d'association
+articles_tags = Table(
+    &quot;articles_tags&quot;, Base.metadata,
+    Column(&quot;article_id&quot;, ForeignKey(&quot;articles.id&quot;), primary_key=True),
+    Column(&quot;tag_id&quot;, ForeignKey(&quot;tags.id&quot;), primary_key=True),
+)
+# Dans Article : tags = relationship(&quot;Tag&quot;, secondary=articles_tags, ...)
+# Dans Tag     : articles = relationship(&quot;Article&quot;, secondary=articles_tags, ...)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>Alembic</h2>
+<div class="code-block"><pre><code class="language-bash">alembic init alembic               # Initialiser
+alembic revision --autogenerate -m &quot;description&quot;  # Générer une migration
+alembic upgrade head               # Appliquer toutes les migrations
+alembic downgrade -1               # Revenir à la précédente
+alembic history                    # Historique des migrations
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>Tests pytest + TestClient</h2>
+<div class="code-block"><pre><code class="language-python">from fastapi.testclient import TestClient
+from main import app
+
+client = TestClient(app)
+
+def test_create():
+    r = client.post(&quot;/articles/&quot;, json={&quot;titre&quot;: &quot;Test&quot;, &quot;contenu&quot;: &quot;...&quot;})
+    assert r.status_code == 201
+
+# Remplacer une dépendance
+app.dependency_overrides[get_db] = lambda: test_db
+app.dependency_overrides.clear()  # Nettoyer après les tests
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h2>Docker</h2>
+<div class="code-block"><pre><code class="language-bash">docker compose up --build          # Construire et démarrer
+docker compose exec api alembic upgrade head  # Migrations en conteneur
+docker compose logs -f api         # Logs en temps réel
+docker compose down                # Arrêter et supprimer les conteneurs
+docker compose down -v             # Arrêter ET supprimer les volumes
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+</div>
+
+<div id="tab-glossaire-python-avance-fastapi-orm" class="tab-content">
+<blockquote>
+<p>Glossaire vivant enrichi au fil des chapitres. Version actuelle : couvre les Chapitres 1 à 5.</p>
+</blockquote>
+<p><strong>Alembic</strong> — Outil de migration de schéma de base de données pour SQLAlchemy. Génère des fichiers de migration versionnés et permet d'appliquer (<code>upgrade</code>) ou d'annuler (<code>downgrade</code>) les changements de schéma.</p>
+<p><strong>ASGI (Asynchronous Server Gateway Interface)</strong> — Interface Python pour les serveurs web asynchrones, successeur de WSGI. Permet la gestion concurrente des connexions via <code>async</code>/<code>await</code>.</p>
+<p><strong>Authentification</strong> — Processus vérifiant l'identité d'un appelant ("Qui êtes-vous ?"). Distinct de l'autorisation. Dans cette formation : vérification du jeton JWT.</p>
+<p><strong>Autorisation</strong> — Processus vérifiant qu'une identité authentifiée possède les droits nécessaires ("Avez-vous le droit ?"). Distinct de l'authentification. Codes HTTP : 403 Forbidden.</p>
+<p><strong>BackgroundTasks</strong> — Mécanisme FastAPI pour exécuter des fonctions après que la réponse HTTP a été envoyée au client, dans le même processus. Adapté aux tâches légères non critiques.</p>
+<p><strong>Base déclarative (<code>DeclarativeBase</code>)</strong> — Classe de base SQLAlchemy dont héritent les modèles ORM. Maintient le registre des tables et génère les métadonnées.</p>
+<p><strong>CORS (Cross-Origin Resource Sharing)</strong> — Mécanisme de sécurité des navigateurs contrôlant les requêtes vers des domaines différents. Configuré dans FastAPI via <code>CORSMiddleware</code>.</p>
+<p><strong>Dépendance (<code>Depends</code>)</strong> — Mécanisme FastAPI d'injection de dépendances. Une fonction déclarée avec <code>Depends()</code> est appelée automatiquement avant le gestionnaire et son résultat lui est injecté.</p>
+<p><strong>Eager loading</strong> — Stratégie de chargement des relations SQLAlchemy qui charge les objets liés en même temps que l'objet principal, évitant le N+1. Deux variantes : <code>joinedload()</code> et <code>selectinload()</code>.</p>
+<p><strong>Engine</strong> — Objet SQLAlchemy représentant la connexion à la base de données. Encapsule la chaîne de connexion et gère le pool de connexions.</p>
+<p><strong>FastAPI</strong> — Framework web Python asynchrone (ASGI) créé en 2018. Fondé sur Starlette (routage, middleware) et Pydantic (validation). Génère automatiquement la documentation OpenAPI.</p>
+<p><strong>ForeignKey</strong> — Contrainte SQL référençant la colonne d'une autre table. Définit le côté "many" d'une relation dans SQLAlchemy.</p>
+<p><strong>Gestionnaire (handler)</strong> — Fonction Python associée à une route FastAPI via un décorateur d'opération (<code>@app.get</code>, <code>@app.post</code>…). Contient la logique métier de l'endpoint.</p>
+<p><strong>GraphQL</strong> — Langage de requête pour API permettant au client de choisir les champs retournés. Alternative à REST pour les interfaces riches.</p>
+<p><strong>Gunicorn</strong> — Gestionnaire de processus Python qui lance plusieurs workers Uvicorn en production pour utiliser tous les CPU disponibles.</p>
+<p><strong>HTTPException</strong> — Exception FastAPI à lever pour retourner une réponse HTTP d'erreur structurée (<code>{"detail": "..."}</code>) avec le code de statut approprié.</p>
+<p><strong>Idempotence</strong> — Propriété d'une opération dont le résultat est identique qu'elle soit exécutée une ou plusieurs fois. GET, PUT et DELETE sont idempotents ; POST ne l'est pas.</p>
+<p><strong>Impedance objet-relationnel</strong> — Décalage conceptuel entre le modèle objet (classes, attributs, méthodes) et le modèle relationnel (tables, lignes, colonnes). Les ORM réduisent ce décalage.</p>
+<p><strong>JWT (JSON Web Token)</strong> — Jeton signé numériquement encodant un payload JSON. Composé de trois parties : header + payload + signature. Le payload est encodé en Base64 (pas chiffré).</p>
+<p><strong>joinedload()</strong> — Stratégie SQLAlchemy d'eager loading qui charge une relation via un JOIN dans la requête principale. Efficace pour les relations to-one.</p>
+<p><strong>Lazy loading</strong> — Comportement par défaut des relations SQLAlchemy : les objets liés ne sont chargés que lors de l'accès à l'attribut de relation, déclenchant une requête SQL supplémentaire.</p>
+<p><strong>mapped_column</strong> — Syntaxe SQLAlchemy 2.0 pour définir une colonne de modèle avec annotation de type Python. Remplace <code>Column()</code> dans la syntaxe héritée.</p>
+<p><strong>Middleware</strong> — Couche de traitement interposée entre la réception d'une requête et le gestionnaire. Gère les préoccupations transversales : CORS, logging, authentification globale.</p>
+<p><strong>Mapped[type]</strong> — Annotation SQLAlchemy 2.0 indiquant le type Python d'un attribut mappé sur une colonne ou une relation.</p>
+<p><strong>Migration</strong> — Script versionné décrivant une modification du schéma de base de données (ajout de colonne, création de table…). Géré par Alembic.</p>
+<p><strong>N+1 (syndrome des N+1 requêtes)</strong> — Problème de performance ORM : 1 requête pour charger N entités + N requêtes pour charger les relations de chacune = N+1 requêtes au total. Résolu par l'eager loading.</p>
+<p><strong>OAuth2 Password Flow</strong> — Flux d'authentification OAuth2 où le client envoie directement l'identifiant et le mot de passe pour obtenir un jeton d'accès. Implémenté avec <code>OAuth2PasswordBearer</code> dans FastAPI.</p>
+<p><strong>OpenAPI</strong> — Spécification ouverte pour décrire des API REST (anciennement Swagger). FastAPI génère automatiquement une spécification OpenAPI 3.0 à partir des annotations de type.</p>
+<p><strong>ORM (Object-Relational Mapper)</strong> — Bibliothèque qui établit une correspondance entre classes Python et tables de base de données, gérant la conversion et les requêtes SQL.</p>
+<p><strong>Pydantic</strong> — Bibliothèque Python de validation de données par annotation de type. Utilisée par FastAPI pour valider les entrées et sérialiser les sorties des endpoints.</p>
+<p><strong>relationship()</strong> — Directive SQLAlchemy ORM définissant une association navigable entre deux modèles. Ne crée pas de colonne — utilise la <code>ForeignKey</code> existante.</p>
+<p><strong>REST (Representational State Transfer)</strong> — Style architectural pour les API HTTP défini par Roy Fielding en 2000. Caractérisé par : interface uniforme, sans état, ressources identifiées par URL.</p>
+<p><strong>response_model</strong> — Paramètre des décorateurs FastAPI définissant le modèle Pydantic utilisé pour sérialiser et filtrer la réponse. Garantit qu'aucun champ non autorisé n'est exposé.</p>
+<p><strong>secondary</strong> — Paramètre de <code>relationship()</code> indiquant la table d'association pour une relation n-à-n.</p>
+<p><strong>selectinload()</strong> — Stratégie SQLAlchemy d'eager loading qui charge une collection via une requête <code>IN</code> séparée. Efficace pour les relations to-many.</p>
+<p><strong>Session</strong> — Objet SQLAlchemy représentant une "conversation" avec la base de données. Gère le cycle de vie des objets (transient, pending, persistent, detached) et les transactions.</p>
+<p><strong>SOAP (Simple Object Access Protocol)</strong> — Protocole de Web Services basé sur XML, défini par le W3C en 1998. Rigoureux et formel, utilisé dans les systèmes d'entreprise legacy.</p>
+<p><strong>Starlette</strong> — Framework ASGI Python sur lequel FastAPI est fondé. Fournit le routage, le middleware, les WebSockets et le TestClient.</p>
+<p><strong>TestClient</strong> — Client HTTP de test fourni par FastAPI (fondé sur <code>httpx</code>) qui appelle l'application directement en mémoire sans ouvrir de port TCP.</p>
+<p><strong>Unit of Work</strong> — Patron de conception implémenté par la Session SQLAlchemy : les modifications des objets persistants sont trackées et envoyées à la base en une seule transaction au <code>commit()</code>.</p>
+<p><strong>Uvicorn</strong> — Serveur ASGI Python hautes performances fondé sur <code>uvloop</code> et <code>httptools</code>. Serveur de référence pour FastAPI en développement et en production.</p>
+<p><strong>WSGI (Web Server Gateway Interface)</strong> — Interface Python historique pour les serveurs web synchrones. Flask et Django (mode classique) utilisent WSGI. Remplacé par ASGI pour les applications asynchrones.</p>
+</div>
+
+<div id="tab-ressources-python-avance-fastapi-orm" class="tab-content">
+<blockquote>
+<p>Ce fichier centralise les liens de documentation officielle vérifiés au fil des chapitres.
+Seule la documentation officielle est référencée (📖). Aucun lien non officiel.</p>
+</blockquote>
+<h2>Chapitre 1 — Découverte de FastAPI et des Web Services</h2>
+<p>📖 <strong>FastAPI — Documentation officielle</strong>
+https://fastapi.tiangolo.com/</p>
+<p>📖 <strong>Starlette — Documentation officielle</strong>
+https://www.starlette.io/</p>
+<p>📖 <strong>OpenAPI Specification 3.0</strong>
+https://spec.openapis.org/oas/v3.0.3</p>
+<p>📖 <strong>Pydantic v2 — Documentation officielle</strong>
+https://docs.pydantic.dev/latest/</p>
+<p>📖 <strong>Uvicorn — Documentation officielle</strong>
+https://www.uvicorn.org/</p>
+<h2>Chapitre 2 — Implémenter des routes REST avec FastAPI</h2>
+<p>📖 <strong>FastAPI — Path Parameters</strong>
+https://fastapi.tiangolo.com/tutorial/path-params/</p>
+<p>📖 <strong>FastAPI — Query Parameters</strong>
+https://fastapi.tiangolo.com/tutorial/query-params/</p>
+<p>📖 <strong>FastAPI — Request Body</strong>
+https://fastapi.tiangolo.com/tutorial/body/</p>
+<p>📖 <strong>FastAPI — Response Model</strong>
+https://fastapi.tiangolo.com/tutorial/response-model/</p>
+<p>📖 <strong>FastAPI — Handling Errors</strong>
+https://fastapi.tiangolo.com/tutorial/handling-errors/</p>
+<p>📖 <strong>Pydantic v2 — Validators</strong>
+https://docs.pydantic.dev/latest/concepts/validators/</p>
+<p>📖 <strong>Python — asyncio</strong>
+https://docs.python.org/3/library/asyncio.html</p>
+<h2>Chapitre 3 — Sécurité, dépendances et déploiement FastAPI</h2>
+<p>📖 <strong>FastAPI — Dependencies</strong>
+https://fastapi.tiangolo.com/tutorial/dependencies/</p>
+<p>📖 <strong>FastAPI — Security / OAuth2 with Password</strong>
+https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/</p>
+<p>📖 <strong>FastAPI — Middleware</strong>
+https://fastapi.tiangolo.com/tutorial/middleware/</p>
+<p>📖 <strong>FastAPI — CORS</strong>
+https://fastapi.tiangolo.com/tutorial/cors/</p>
+<p>📖 <strong>FastAPI — Background Tasks</strong>
+https://fastapi.tiangolo.com/tutorial/background-tasks/</p>
+<p>📖 <strong>FastAPI — Testing</strong>
+https://fastapi.tiangolo.com/tutorial/testing/</p>
+<p>📖 <strong>python-jose — Documentation</strong>
+https://python-jose.readthedocs.io/en/latest/</p>
+<p>📖 <strong>passlib — Documentation</strong>
+https://passlib.readthedocs.io/en/stable/</p>
+<p>📖 <strong>Docker — Documentation officielle</strong>
+https://docs.docker.com/</p>
+<p>📖 <strong>Docker Compose — Documentation</strong>
+https://docs.docker.com/compose/</p>
+<h2>Chapitre 4 — SQLAlchemy : Modélisation et requêtes</h2>
+<p>📖 <strong>SQLAlchemy 2.0 — Documentation officielle</strong>
+https://docs.sqlalchemy.org/en/20/</p>
+<p>📖 <strong>SQLAlchemy — ORM Declarative Mapping</strong>
+https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html</p>
+<p>📖 <strong>SQLAlchemy — Relationships</strong>
+https://docs.sqlalchemy.org/en/20/orm/relationships.html</p>
+<p>📖 <strong>SQLAlchemy — ORM Querying Guide (2.0)</strong>
+https://docs.sqlalchemy.org/en/20/orm/queryguide/index.html</p>
+<p>📖 <strong>Alembic — Documentation officielle</strong>
+https://alembic.sqlalchemy.org/en/latest/</p>
+<p>📖 <strong>Alembic — Auto-generating Migrations</strong>
+https://alembic.sqlalchemy.org/en/latest/autogenerate.html</p>
+<h2>Chapitre 5 — SQLAlchemy avancé et intégration FastAPI</h2>
+<p>📖 <strong>SQLAlchemy — Relationship Loading Techniques</strong>
+https://docs.sqlalchemy.org/en/20/orm/loading_relationships.html</p>
+<p>📖 <strong>SQLAlchemy — N+1 / Lazy Loading</strong>
+https://docs.sqlalchemy.org/en/20/orm/loading_relationships.html#what-kind-of-loading-to-use</p>
+<p>📖 <strong>FastAPI — SQL (Relational) Databases</strong>
+https://fastapi.tiangolo.com/tutorial/sql-databases/</p>
+<p>📖 <strong>FastAPI — Bigger Applications</strong>
+https://fastapi.tiangolo.com/tutorial/bigger-applications/</p>
+<p>📖 <strong>pydantic-settings — Documentation</strong>
+https://docs.pydantic.dev/latest/concepts/pydantic_settings/</p>
+</div>
+  </div>
+</div>
+
+<script>
+// ─── THEME ──────────────────────────────────────────────────────────────────
+(function () {
+  const root = document.documentElement;
+  const stored = localStorage.getItem('dawan-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  updateToggleLabel();
+})();
+
+function updateToggleLabel() {
+  const current = document.documentElement.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.getElementById('theme-icon').textContent = current === 'dark' ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = current === 'dark' ? 'Sombre' : 'Clair';
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('dawan-theme', next);
+  updateToggleLabel();
+}
+
+// ─── TABS ───────────────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.side-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  document.querySelector('.content').scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// ─── COPY CODE ──────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = 'Copié !'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── QUIZ ────────────────────────────────────────────────────────────────────
+
+let score = 0;
+let answered = {};
+
+function answer(qNum, choice) {
+  if (answered[qNum]) return;
+  answered[qNum] = true;
+  score += (choice === answers[qNum]) ? 1 : 0;
+  const qEl = document.getElementById('q' + qNum);
+  qEl.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = true;
+    const ltr = btn.textContent.trim()[0].toLowerCase();
+    if (ltr === answers[qNum]) btn.classList.add('correct');
+    else if (ltr === choice) btn.classList.add('wrong');
+  });
+  const fb = feedbacks[qNum];
+  document.getElementById('fb' + qNum).textContent = (choice === answers[qNum]) ? fb[answers[qNum]] : fb.wrong;
+  if (Object.keys(answered).length === QUIZ_TOTAL) showScore();
+}
+
+function showScore() {
+  const el = document.getElementById('quiz-score');
+  el.style.display = 'block';
+  document.getElementById('score-display').textContent = score + ' / ' + QUIZ_TOTAL;
+  const ratio = score / QUIZ_TOTAL;
+  let msg;
+  if (ratio === 1) msg = 'Parfait ! Toutes les réponses sont correctes.';
+  else if (ratio >= .8) msg = 'Très bien ! Vous maîtrisez l\'essentiel.';
+  else if (ratio >= .6) msg = 'Pas mal ! Relisez les points manqués.';
+  else if (ratio >= .4) msg = 'Quelques notions à revoir.';
+  else msg = 'Revoyez le cours avant de continuer.';
+  document.getElementById('score-msg').textContent = msg;
+}
+
+function restartQuiz() {
+  score = 0; answered = {};
+  document.getElementById('quiz-score').style.display = 'none';
+  document.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('correct','wrong');
+  });
+  document.querySelectorAll('.quiz-feedback').forEach(fb => fb.textContent = '');
+}
+</script>
+</body>
+</html>

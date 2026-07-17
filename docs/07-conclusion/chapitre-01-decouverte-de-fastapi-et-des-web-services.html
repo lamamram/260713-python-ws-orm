@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Support interactif de formation Python Avancé : FastAPI + ORM : 01 — Découverte de FastAPI et des Web Services">
+<title>01 — Découverte de FastAPI et des Web Services</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --primary: #f0883e; --primary2: #ffa657;
+  --success: #3fb950; --warning: #d29922; --danger: #f85149;
+  --text: #e6edf3; --text-muted: #8b949e; --code-bg: #010409; --radius: 10px;
+  --topbar-h: 3.25rem;
+}
+:root[data-theme="light"] {
+  --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+  --primary: #bc4c00; --primary2: #953800;
+  --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+  --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+    --primary: #bc4c00; --primary2: #953800;
+    --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+    --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.7; transition: background .2s, color .2s; }
+
+/* TOPBAR — fixe, ne bouge jamais au scroll */
+.topbar {
+  position: sticky; top: 0; z-index: 200; height: var(--topbar-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .9rem; padding: 0 1rem;
+}
+.topbar .badge {
+  flex: 0 0 auto; background: var(--primary); color: #0d1117;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.topbar a.chapter-title {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: .5rem;
+  text-decoration: none; color: var(--text); font-weight: 700; font-size: .92rem;
+  overflow: hidden;
+}
+.topbar a.chapter-title:hover { color: var(--primary); }
+.topbar a.chapter-title .num { color: var(--primary); flex: 0 0 auto; }
+.topbar a.chapter-title .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-links { flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; }
+.topbar-link {
+  white-space: nowrap; padding: .4rem .8rem; border: 1px solid var(--border); border-radius: 20px;
+  font-size: .8rem; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: all .2s;
+}
+.topbar-link:hover { color: var(--primary); border-color: var(--primary); }
+.theme-toggle {
+  flex: 0 0 auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: .4rem .7rem; border-radius: 20px; font-size: .8rem; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.theme-toggle:hover { border-color: var(--primary); }
+
+/* LAYOUT — sidebar gauche + contenu */
+.layout { display: flex; align-items: flex-start; }
+.sidebar {
+  flex: 0 0 280px; width: 280px;
+  position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem 1rem 2rem;
+}
+.objectifs {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .8rem 1rem; margin-bottom: 1.25rem;
+}
+.objectifs-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.objectifs ul { margin: .4rem 0 0 1.1rem; }
+.objectifs li { font-size: .82rem; color: var(--text-muted); margin-bottom: .3rem; line-height: 1.4; }
+.side-nav { display: flex; flex-direction: column; gap: .1rem; }
+.side-nav button {
+  text-align: left; background: none; border: none; border-left: 3px solid transparent;
+  color: var(--text-muted); padding: .55rem .7rem; font-size: .87rem; font-weight: 500;
+  cursor: pointer; border-radius: 0 6px 6px 0; transition: all .15s;
+}
+.side-nav button:hover { color: var(--text); background: var(--surface2); }
+.side-nav button.active { color: var(--primary); border-left-color: var(--primary); background: var(--surface2); font-weight: 600; }
+.side-nav-sep { height: 1px; background: var(--border); margin: .6rem 0; }
+
+.content { flex: 1 1 auto; min-width: 0; }
+.tab-content { display: none; padding: 2rem 2.5rem 4rem; max-width: 1100px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* SECTIONS */
+h2 { font-size: 1.25rem; color: var(--primary2); margin: 1.8rem 0 .8rem; border-left: 3px solid var(--primary); padding-left: .75rem; }
+h3 { font-size: 1.05rem; color: var(--text); margin: 1.4rem 0 .6rem; }
+p { margin-bottom: .9rem; }
+ul, ol { padding-left: 1.4rem; margin-bottom: .9rem; }
+li { margin-bottom: .35rem; }
+
+/* RESSOURCES — liste sous forme de cartes plutôt que de puces */
+#tab-ressources ul { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: .5rem; }
+#tab-ressources li {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .75rem 1rem; margin-bottom: 0;
+}
+#tab-ressources li a { color: var(--primary2); font-weight: 600; text-decoration: none; }
+#tab-ressources li a:hover { text-decoration: underline; }
+
+/* AIDE — divulgation progressive pas-à-pas */
+details.aide { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+details.aide summary {
+  cursor: pointer; padding: .8rem 1.1rem; font-weight: 600; color: var(--primary);
+  list-style: none; display: flex; align-items: center; gap: .5rem;
+}
+details.aide summary::-webkit-details-marker { display: none; }
+details.aide summary::before { content: "▶"; font-size: .7rem; transition: transform .15s; }
+details.aide[open] summary::before { transform: rotate(90deg); }
+details.aide .aide-body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); margin-top: .2rem; padding-top: 1rem; }
+img { max-width: 100%; height: auto; display: block; margin: 1rem auto; }
+
+/* EXERCICE — un bloc par atelier, avec son aide pas-à-pas attachée juste en dessous */
+.exercice { padding: 1.3rem 0; border-top: 1px solid var(--border); }
+.exercice:first-of-type { border-top: none; padding-top: 0; }
+.exercice h3 { margin: 0 0 .8rem; color: var(--primary2); }
+
+/* CALLOUTS */
+.callout { border-radius: var(--radius); padding: .9rem 1.1rem; margin: 1.2rem 0; border-left: 4px solid; background: var(--surface2); }
+.callout.note   { border-color: var(--primary); }
+.callout.tip    { border-color: var(--success); }
+.callout.warn   { border-color: var(--warning); }
+.callout.danger { border-color: var(--danger); }
+.callout p:last-child { margin-bottom: 0; }
+.callout-title { font-weight: 700; font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+.callout.note   .callout-title { color: var(--primary); }
+.callout.tip    .callout-title { color: var(--success); }
+.callout.warn   .callout-title { color: var(--warning); }
+.callout.danger .callout-title { color: var(--danger); }
+
+/* TABLES */
+.table-wrap { overflow-x: auto; margin: 1rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th { background: var(--surface2); color: var(--primary2); text-align: left; padding: .6rem .9rem; font-weight: 600; border: 1px solid var(--border); }
+td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+tr:hover td { background: var(--surface2); }
+
+/* CODE */
+.code-block { position: relative; margin: 1rem 0; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1rem 1rem 1.2rem; overflow-x: auto; }
+code { font-family: 'Consolas', 'Cascadia Code', monospace; font-size: .88rem; color: var(--primary2); }
+p code, li code, td code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .05rem .35rem; }
+.copy-btn {
+  position: absolute; top: .5rem; right: .5rem;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  padding: .25rem .6rem; font-size: .75rem; border-radius: 5px; cursor: pointer; transition: all .2s;
+}
+.copy-btn:hover { background: var(--primary); color: #0d1117; }
+.copy-btn.copied { background: var(--success); color: #0d1117; }
+
+/* QUIZ */
+.quiz-question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; margin-bottom: 1.2rem; }
+.quiz-question h4 { color: var(--primary2); margin-bottom: .9rem; font-size: .98rem; }
+.quiz-options { display: flex; flex-direction: column; gap: .5rem; }
+.quiz-option {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: .6rem .9rem; cursor: pointer;
+  font-size: .9rem; transition: all .2s; text-align: left; color: var(--text);
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--primary); }
+.quiz-option.correct { border-color: var(--success); color: var(--success); }
+.quiz-option.wrong   { border-color: var(--danger);  color: var(--danger);  }
+.quiz-option:disabled { cursor: default; }
+.quiz-feedback { margin-top: .6rem; font-size: .87rem; color: var(--text-muted); font-style: italic; }
+.quiz-score {
+  background: var(--surface2); border: 1px solid var(--primary);
+  border-radius: var(--radius); padding: 1.5rem; text-align: center; margin-top: 1.5rem; display: none;
+}
+.quiz-score .score-num { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+.quiz-score p { color: var(--text-muted); margin-top: .4rem; }
+.btn-restart { background: var(--primary); color: #0d1117; border: none; padding: .6rem 1.4rem; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 1rem; font-size: .9rem; }
+.btn-restart:hover { background: var(--primary2); }
+
+/* RESPONSIVE — sidebar devient une barre horizontale sous 900px */
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: static; width: 100%; height: auto; max-height: 40vh;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .side-nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: .3rem; }
+  .side-nav button { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; border-radius: 6px 6px 0 0; }
+  .side-nav button.active { border-left-color: transparent; border-bottom-color: var(--primary); }
+  .side-nav-sep { display: none; }
+  .tab-content { padding: 1.5rem 1.2rem 3rem; }
+  .topbar a.chapter-title { font-size: .82rem; }
+}
+</style>
+<link rel="stylesheet" href="assets/course-common.css">
+<script src="assets/course-common.js" defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="badge">Python Avancé : FastAPI + ORM</span>
+  <a class="chapter-title" href="index.html" title="Retour à l'accueil de la formation">
+    <span class="num">01</span><span class="txt">Découverte de FastAPI et des Web Services</span>
+  </a>
+  <div class="topbar-links">
+    <a href="annexes.html" class="topbar-link">Annexes ↗</a>
+    <a class="topbar-link" href="index.html">Sommaire</a>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Basculer entre thème clair et sombre">
+      <span id="theme-icon">🌙</span> <span id="theme-label">Sombre</span>
+    </button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="objectifs"><span class="objectifs-label">Objectifs</span><ul><li>Distinguer les architectures Web Services (SOAP, REST, GraphQL) et justifier le choix de REST pour une API Python moderne</li><li>Expliquer les composantes d&#x27;une requête et d&#x27;une réponse HTTP (méthodes, codes de statut, en-têtes, corps)</li><li>Créer un projet FastAPI fonctionnel avec un environnement virtuel, uvicorn et une première route annotée</li><li>Naviguer dans la documentation Swagger UI générée automatiquement et tester un endpoint depuis Postman</li></ul></div>
+    <nav class="side-nav" id="main-nav">
+      <button class="active" onclick="showTab('objectifs-du-chapitre')">Objectifs du chapitre</button>
+  <button class="" onclick="showTab('web-services-du-soap-au-rest')">Web Services — du SOAP au REST</button>
+  <button class="" onclick="showTab('http-le-protocole-sous-jacent')">HTTP — le protocole sous-jacent</button>
+  <button class="" onclick="showTab('fastapi-presentation-architecture-et-positionnement')">FastAPI — présentation, architecture et positionnement</button>
+  <button class="" onclick="showTab('openapi-et-documentation-automatique-avec-swagger')">OpenAPI et documentation automatique avec Swagger</button>
+  <button class="" onclick="showTab('postman-tester-une-api')">Postman — tester une API</button>
+  <button class="" onclick="showTab('installation-et-premier-projet-fastapi')">Installation et premier projet FastAPI</button>
+  <button class="" onclick="showTab('travaux-pratiques')">Travaux pratiques</button>
+  <button class="" onclick="showTab('quiz')">Quiz</button>
+    </nav>
+  </aside>
+  <div class="content">
+    <div id="tab-objectifs-du-chapitre" class="tab-content active">
+<p>À l'issue de ce chapitre, chaque stagiaire est capable de :</p>
+<ul>
+<li>Situer FastAPI dans l'écosystème des frameworks web Python et expliquer en quoi il diffère de Flask et de Django</li>
+<li>Décrire le cycle complet d'une requête HTTP : méthode, URL, en-têtes, corps, code de statut, corps de réponse</li>
+<li>Distinguer SOA et microservices, et identifier les cas d'usage typiques de chaque architecture</li>
+<li>Lire et comprendre une spécification OpenAPI générée automatiquement par FastAPI</li>
+<li>Installer un environnement de développement Python avec <code>venv</code>, <code>pip</code> et VS Code, et démarrer un serveur uvicorn</li>
+<li>Écrire et exposer une première route <code>GET</code> annotée avec des types Python, retournant un objet JSON</li>
+<li>Tester un endpoint depuis Swagger UI et depuis Postman</li>
+</ul>
+</div>
+
+<div id="tab-web-services-du-soap-au-rest" class="tab-content">
+<h3>Qu'est-ce qu'un Web Service ?</h3>
+<p>Un Web Service est un composant logiciel accessible via un réseau (le plus souvent Internet ou un réseau d'entreprise) qui expose des fonctionnalités à d'autres applications, indépendamment du langage de programmation ou de la plateforme de chaque interlocuteur. C'est le mécanisme qui permet à une application mobile de récupérer la météo auprès d'un serveur météo, à un site e-commerce de déclencher un paiement auprès d'un prestataire bancaire, ou à un ERP d'importer des données depuis un fournisseur logistique.</p>
+<p>La notion-clé est l'<strong>interopérabilité</strong> : deux applications qui ne partagent ni le même langage, ni la même base de code, ni la même infrastructure peuvent communiquer via un protocole commun et un format de données standardisé. Ce contrat d'interface remplace les intégrations point-à-point fragiles (partage de fichier CSV, accès direct à une base de données distante) par une interface stable, versionnée et testable.</p>
+<div class="callout note"><div class="callout-title">Analogie</div><p>Un Web Service ressemble à une prise électrique normalisée : peu importe ce que vous branchez (lampe, ordinateur, chargeur), la prise expose toujours le même interface. Ce qui est "branché" côté client peut changer sans que la prise elle-même soit modifiée.</p></div>
+<h3>Les trois grandes familles d'architectures</h3>
+<p>Trois grandes approches se sont succédé ou coexistent dans le monde des Web Services :</p>
+<p><strong>SOAP (Simple Object Access Protocol)</strong> est une norme du W3C née en 1998, fondée sur XML et transportée indifféremment sur HTTP, SMTP ou d'autres protocoles. SOAP définit un enveloppe XML stricte, un mécanisme de fautes normalisé et un contrat de service décrit dans un fichier WSDL (Web Services Description Language). Cette rigueur en fait un choix apprécié dans les environnements d'entreprise exigeant de la traçabilité formelle (banque, assurance, secteur public) — au prix d'une verbosité et d'une complexité qui ont freiné son adoption dans les projets modernes à rythme élevé de déploiement.</p>
+<p><strong>REST (Representational State Transfer)</strong> est un style architectural décrit par Roy Fielding dans sa thèse de doctorat en 2000. Il ne définit pas un protocole au sens strict mais un ensemble de contraintes : communication sans état (chaque requête porte toutes les informations nécessaires à son traitement), identification des ressources par URL, manipulation via les méthodes HTTP standard (GET, POST, PUT, DELETE), réponses représentées généralement en JSON ou en XML. Sa simplicité et son alignement naturel sur HTTP ont contribué à son adoption massive — aujourd'hui, la grande majorité des API publiques (GitHub, Stripe, Twilio, Google Maps…) sont des API REST ou "REST-like".</p>
+<p><strong>GraphQL</strong> est un langage de requête pour API développé par Facebook en 2012 et rendu open source en 2015. Il déplace la responsabilité de la sélection des données du serveur vers le client : le client décrit exactement les champs qu'il veut recevoir, le serveur retourne uniquement ces champs. GraphQL est particulièrement adapté aux interfaces avec des besoins très variables d'un écran à l'autre (applications mobiles, Single-Page Applications complexes) — mais son modèle de schéma, de resolver et de typage fort introduit une courbe d'apprentissage plus prononcée que REST.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Critère</th>
+<th>SOAP</th>
+<th>REST</th>
+<th>GraphQL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Format des données</td>
+<td>XML obligatoire</td>
+<td>JSON, XML, texte</td>
+<td>JSON</td>
+</tr>
+<tr>
+<td>Contrat d'interface</td>
+<td>WSDL (fichier XML)</td>
+<td>OpenAPI (optionnel)</td>
+<td>Schéma GraphQL (obligatoire)</td>
+</tr>
+<tr>
+<td>Transport</td>
+<td>HTTP, SMTP, etc.</td>
+<td>HTTP uniquement</td>
+<td>HTTP uniquement</td>
+</tr>
+<tr>
+<td>Granularité des requêtes</td>
+<td>Opérations définies côté serveur</td>
+<td>Ressources + méthodes HTTP</td>
+<td>Requêtes construites côté client</td>
+</tr>
+<tr>
+<td>Adoption principale</td>
+<td>Systèmes d'entreprise legacy</td>
+<td>API publiques, microservices</td>
+<td>Applications front-end riches</td>
+</tr>
+<tr>
+<td>Courbe d'apprentissage</td>
+<td>Élevée</td>
+<td>Modérée</td>
+<td>Élevée</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout warn"><div class="callout-title">REST ≠ HTTP</div><p>REST est un style architectural, pas un protocole. Une API peut utiliser HTTP sans être REST (elle est alors qualifiée de "HTTP API" ou de "REST-like"). Une vraie API REST respecte les contraintes de Fielding : sans état, avec une interface uniforme, en s'appuyant sur la sémantique des méthodes HTTP. En pratique, le terme "API REST" est souvent utilisé de façon approximative pour désigner toute API JSON sur HTTP.</p></div>
+<h3>SOA versus microservices</h3>
+<p>Deux philosophies d'organisation des services sont fréquemment évoquées dans les projets d'entreprise.</p>
+<p>L'<strong>architecture orientée services (SOA — Service-Oriented Architecture)</strong> organise une application en services métier relativement larges, communiquant souvent via un ESB (Enterprise Service Bus) centralisé. Chaque service encapsule un domaine fonctionnel (facturation, gestion des clients, logistique) et est exposé au reste du système via des contrats normalisés (souvent SOAP/WSDL ou REST). La gouvernance est centralisée, les services sont peu nombreux et relativement couplés via l'ESB.</p>
+<p>L'<strong>architecture en microservices</strong> pousse la décomposition beaucoup plus loin : chaque service est un processus indépendant, avec sa propre base de données, son propre cycle de déploiement et son propre contrat d'API. Les microservices communiquent entre eux via des API REST légères ou des messages asynchrones. L'indépendance est totale (un service peut être redéployé sans affecter les autres) — au prix d'une complexité opérationnelle (orchestration, traçabilité des appels inter-services, gestion des transactions distribuées) qui n'est pertinente qu'à partir d'une certaine taille d'équipe et de trafic.</p>
+<p><img alt="Architecture SOA vs microservices — comparaison des composantes" src="../08-images/ch01-soa-vs-microservices.svg" /></p>
+<p>Le schéma ci-dessus illustre la différence fondamentale entre les deux approches : SOA avec un ESB central concentrant les flux, et microservices avec des services autonomes communiquant en pair-à-pair via des API REST légères. FastAPI est typiquement utilisé dans le cadre de microservices ou de "modular monoliths" — des applications décomposées en modules bien définis sans aller jusqu'à la multiplication des processus indépendants.</p>
+<p>FastAPI n'impose aucun style architectural particulier : il peut aussi bien servir de backend monolithique d'une application web classique que d'un microservice spécialisé dans un domaine fonctionnel précis. Ce qui compte, c'est que chaque endpoint exposé respecte les conventions REST que le Chapitre 2 détaillera.</p>
+</div>
+
+<div id="tab-http-le-protocole-sous-jacent" class="tab-content">
+<h3>Anatomie d'une requête HTTP</h3>
+<p>Une API REST repose entièrement sur HTTP. Comprendre la structure d'une requête et d'une réponse HTTP n'est pas optionnel : c'est ce qui permet de diagnostiquer un problème d'authentification, d'interpréter un code d'erreur, ou de décider quel code de statut retourner depuis un endpoint FastAPI.</p>
+<p>Une requête HTTP comprend :</p>
+<ul>
+<li>Une <strong>ligne de requête</strong> : méthode (<code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code>, <code>PATCH</code>…) + URL + version HTTP</li>
+<li>Des <strong>en-têtes de requête</strong> (headers) : métadonnées comme <code>Content-Type</code>, <code>Authorization</code>, <code>Accept</code>, <code>User-Agent</code></li>
+<li>Un <strong>corps de requête</strong> (body) : optionnel, utilisé avec <code>POST</code>, <code>PUT</code>, <code>PATCH</code> pour transmettre des données au serveur</li>
+</ul>
+<p>Une réponse HTTP comprend :</p>
+<ul>
+<li>Une <strong>ligne de statut</strong> : code de statut numérique + phrase associée (<code>200 OK</code>, <code>404 Not Found</code>, <code>422 Unprocessable Entity</code>…)</li>
+<li>Des <strong>en-têtes de réponse</strong> : <code>Content-Type</code>, <code>Content-Length</code>, <code>Set-Cookie</code>…</li>
+<li>Un <strong>corps de réponse</strong> : données retournées, généralement JSON pour une API REST</li>
+</ul>
+<div class="code-block"><pre><code># Exemple de requête HTTP brute
+GET /articles/42 HTTP/1.1
+Host: api.exemple.com
+Accept: application/json
+Authorization: Bearer eyJhbGci...
+
+# Réponse correspondante
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 87
+
+{&quot;id&quot;: 42, &quot;titre&quot;: &quot;Introduction à FastAPI&quot;, &quot;auteur&quot;: &quot;Alice&quot;}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Les méthodes HTTP et leur sémantique</h3>
+<p>Chaque méthode HTTP véhicule une intention précise. Cette sémantique n'est pas une convention optionnelle — elle est la base du contrat REST que les clients de l'API s'attendent à trouver respecté.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Méthode</th>
+<th>Sémantique</th>
+<th>Idempotent ?</th>
+<th>Corps ?</th>
+<th>Usage typique</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td>Lire une ressource</td>
+<td>Oui</td>
+<td>Non</td>
+<td>Récupérer un article, lister des utilisateurs</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td>Créer une ressource</td>
+<td>Non</td>
+<td>Oui</td>
+<td>Créer un nouvel utilisateur, soumettre un formulaire</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td>Remplacer une ressource</td>
+<td>Oui</td>
+<td>Oui</td>
+<td>Remplacer complètement un article</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td>Modifier partiellement</td>
+<td>Non</td>
+<td>Oui</td>
+<td>Mettre à jour uniquement l'email d'un utilisateur</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td>Supprimer une ressource</td>
+<td>Oui</td>
+<td>Rare</td>
+<td>Supprimer un article</td>
+</tr>
+<tr>
+<td><code>OPTIONS</code></td>
+<td>Interroger les capacités</td>
+<td>Oui</td>
+<td>Non</td>
+<td>Pré-vol CORS</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout note"><div class="callout-title">Idempotence</div><p>Une opération est <strong>idempotente</strong> si l'exécuter une fois ou dix fois produit le même résultat côté serveur. <code>DELETE /articles/42</code> est idempotent : que vous l'appeliez une ou cinq fois, l'article 42 sera absent. <code>POST /articles</code> n'est pas idempotent : chaque appel crée un nouvel article.</p></div>
+<h3>Les codes de statut HTTP essentiels</h3>
+<p>FastAPI retourne automatiquement certains codes de statut (200 pour un <code>GET</code> réussi, 422 si la validation Pydantic échoue), mais le développeur peut et doit choisir le code approprié pour les cas d'erreur métier. Les codes se regroupent en cinq familles :</p>
+<ul>
+<li><strong>2xx — Succès</strong> : <code>200 OK</code> (lecture réussie), <code>201 Created</code> (ressource créée), <code>204 No Content</code> (suppression réussie sans corps de réponse)</li>
+<li><strong>3xx — Redirection</strong> : <code>301 Moved Permanently</code>, <code>304 Not Modified</code> (cache HTTP)</li>
+<li><strong>4xx — Erreur client</strong> : <code>400 Bad Request</code> (requête malformée), <code>401 Unauthorized</code> (non authentifié), <code>403 Forbidden</code> (authentifié mais non autorisé), <code>404 Not Found</code> (ressource introuvable), <code>409 Conflict</code> (conflit de données), <code>422 Unprocessable Entity</code> (validation échouée)</li>
+<li><strong>5xx — Erreur serveur</strong> : <code>500 Internal Server Error</code> (exception non gérée), <code>503 Service Unavailable</code> (service indisponible)</li>
+</ul>
+<div class="callout danger"><div class="callout-title">401 vs 403 — une confusion fréquente</div><p><code>401 Unauthorized</code> signifie "je ne sais pas qui vous êtes" (jeton absent ou invalide) — malgré son nom, ce code concerne l'<strong>authentification</strong>, pas l'autorisation.
+<code>403 Forbidden</code> signifie "je sais qui vous êtes, mais vous n'avez pas le droit de faire ça" — c'est l'<strong>autorisation</strong>.
+Confondre les deux induit en erreur les clients de l'API (et les équipes de sécurité qui analysent les logs).</p></div>
+<p><img alt="Cycle requête-réponse HTTP dans une API REST FastAPI" src="../08-images/ch01-cycle-http-rest.svg" /></p>
+<p>Le schéma ci-dessus représente le cycle complet d'une requête HTTP depuis le client jusqu'à la réponse JSON : le client envoie une requête HTTP avec méthode, URL et en-têtes ; uvicorn reçoit et transmet à FastAPI ; FastAPI route vers le bon gestionnaire, exécute la validation Pydantic, puis retourne la réponse avec le code de statut approprié.</p>
+</div>
+
+<div id="tab-fastapi-presentation-architecture-et-positionnement" class="tab-content">
+<h3>Naissance et positionnement</h3>
+<p>FastAPI est un framework web Python créé par Sebastián Ramírez et rendu public en 2018. En moins de cinq ans, il est devenu l'un des frameworks Python les plus populaires pour la création d'API, notamment grâce à trois caractéristiques distinctives.</p>
+<p><strong>Performances élevées</strong> : FastAPI est fondé sur <a href="https://www.starlette.io/">Starlette</a> pour les couches ASGI (serveur, routage, middleware) et sur <a href="https://docs.pydantic.dev/">Pydantic</a> pour la validation des données. Starlette est lui-même l'un des frameworks Python les plus rapides disponibles, proche de Node.js en termes de débit sur des benchmarks standards. Le gain est significatif par rapport à Flask (WSGI synchrone) sur des workloads I/O-bound typiques des API modernes.</p>
+<p><strong>Validation automatique</strong> : chaque paramètre d'entrée déclaré avec un type Python est automatiquement validé par Pydantic. Si un client envoie une chaîne là où un entier est attendu, FastAPI retourne un <code>422 Unprocessable Entity</code> détaillé sans que le développeur n'ait à écrire une seule ligne de code de validation manuelle.</p>
+<p><strong>Documentation automatique</strong> : FastAPI génère, à partir des annotations de type et des docstrings, une documentation OpenAPI interactive (Swagger UI et ReDoc) accessible via une URL dédiée. Cette documentation est toujours synchronisée avec le code — ce n'est pas un document maintenu séparément.</p>
+<h3>Comparaison avec Flask et Django</h3>
+<p>Les deux autres grands frameworks Python pour le web occupent des positionnements différents.</p>
+<p><strong>Flask</strong> est un micro-framework synchrone (WSGI) né en 2010. Il est minimaliste par conception : pas d'ORM inclus, pas de validation automatique, pas de documentation auto-générée. Sa flexibilité et sa simplicité en font un choix répandu pour les petits projets, mais construire une API REST robuste avec Flask implique d'assembler plusieurs bibliothèques tierces (Flask-RESTful ou Flask-Smorest, Marshmallow pour la validation, Flasgger pour Swagger). La migration vers de l'asynchrone avec Flask-Async est possible mais reste un ajout, non la base.</p>
+<p><strong>Django</strong> est un framework "batteries included" synchrone (WSGI, avec support ASGI progressif depuis Django 3.1). Il inclut un ORM, un système d'administration, un moteur de templates et une gestion intégrée de l'authentification. Django REST Framework (DRF) ajoute la couche API REST par-dessus. Pour des projets avec des besoins CRUD complexes et une équipe familière avec l'ORM Django, DRF reste très pertinent — mais l'approche "tout-en-un" peut être surdimensionnée pour une API de microservice légère.</p>
+<p>FastAPI se positionne entre les deux : plus opinioné que Flask (validation Pydantic intégrée, documentation auto, async natif) mais plus ciblé que Django (pas d'ORM inclus, pas de moteur de templates, pas d'admin). Il est aujourd'hui le choix par défaut de nombreuses équipes pour les nouvelles API Python.</p>
+<div class="code-block"><pre><code># Flask — une route simple
+from flask import Flask, jsonify
+app = Flask(__name__)
+
+@app.route(&quot;/articles/&lt;int:article_id&gt;&quot;)
+def get_article(article_id):
+    # Pas de validation automatique du type, pas de documentation générée
+    return jsonify({&quot;id&quot;: article_id})
+
+# FastAPI — la même route
+from fastapi import FastAPI
+app = FastAPI()
+
+@app.get(&quot;/articles/{article_id}&quot;)
+def get_article(article_id: int):
+    # Validation automatique : article_id est garanti entier
+    # Documentation Swagger générée automatiquement
+    return {&quot;id&quot;: article_id}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Architecture interne de FastAPI</h3>
+<p>FastAPI n'est pas un framework autonome — c'est une couche de haut niveau qui orchestre plusieurs bibliothèques spécialisées.</p>
+<p><img alt="Architecture interne de FastAPI — composantes et dépendances" src="../08-images/ch01-architecture-fastapi.svg" /></p>
+<p>Le schéma ci-dessus détaille les couches de FastAPI : en bas, le serveur ASGI Uvicorn qui écoute les connexions HTTP ; au-dessus, Starlette qui gère le routage, le middleware, les sessions et les WebSockets ; au-dessus, FastAPI qui ajoute l'injection de dépendances, la validation Pydantic, la génération OpenAPI et les décorateurs d'opération (<code>@app.get</code>, <code>@app.post</code>…). Pydantic opère transversalement pour la validation des entrées et la sérialisation des sorties.</p>
+<p><strong>Starlette</strong> est le socle ASGI sur lequel repose FastAPI. Il fournit le routage, le support WebSocket, les middlewares (CORS, GZip, sessions), la gestion des requêtes et des réponses, et le client HTTP pour les tests. FastAPI hérite directement de la classe <code>Starlette</code> — tout ce que fait Starlette est disponible dans FastAPI.</p>
+<p><strong>Pydantic</strong> (v2 depuis FastAPI 0.100) est la bibliothèque de validation et de sérialisation de données. Elle s'appuie sur les annotations de type Python pour construire des schémas JSON et valider automatiquement les données entrantes. Un modèle Pydantic est une classe qui déclare ses champs comme des attributs annotés — Pydantic se charge de la coercition de types, de la validation des contraintes et de la sérialisation JSON.</p>
+<p><strong>Uvicorn</strong> est le serveur ASGI recommandé pour FastAPI. Il est fondé sur <code>uvloop</code> et <code>httptools</code>, deux implémentations hautes performances de la boucle d'événements asyncio et du parser HTTP. Uvicorn est utilisé en développement et en production (souvent derrière Gunicorn pour la gestion multi-processus).</p>
+<div class="callout tip"><div class="callout-title">ASGI vs WSGI</div><p>WSGI (Web Server Gateway Interface) est l'interface Python historique pour les serveurs web synchrones — Flask et Django (en mode classique) l'utilisent. ASGI (Asynchronous Server Gateway Interface) est son successeur, conçu pour les frameworks asynchrones. FastAPI est nativement ASGI, ce qui lui permet de gérer des milliers de connexions concurrentes sans bloquer sur les opérations I/O (appels base de données, requêtes HTTP sortantes…).</p></div>
+</div>
+
+<div id="tab-openapi-et-documentation-automatique-avec-swagger" class="tab-content">
+<h3>Qu'est-ce que la spécification OpenAPI ?</h3>
+<p>OpenAPI (anciennement Swagger) est une spécification ouverte pour décrire des API REST. Un fichier OpenAPI (JSON ou YAML) décrit l'ensemble des endpoints d'une API : URLs, méthodes HTTP supportées, paramètres, corps de requête, réponses possibles avec leurs schémas de données et leurs codes de statut. Ce fichier sert de contrat entre le fournisseur de l'API et ses consommateurs.</p>
+<p>La version actuelle est OpenAPI 3.x, maintenue par la Swagger Initiative sous l'égide de la Linux Foundation. FastAPI génère automatiquement une spécification OpenAPI 3.0 à partir des annotations de type du code — sans aucune configuration manuelle.</p>
+<h3>Swagger UI et ReDoc</h3>
+<p>FastAPI expose deux interfaces de documentation interactive par défaut :</p>
+<ul>
+<li><strong>Swagger UI</strong> sur <code>/docs</code> : interface interactive qui permet d'explorer tous les endpoints, de lire leurs schémas de données, et d'exécuter des requêtes directement depuis le navigateur. C'est l'outil principal pour tester manuellement une API en développement.</li>
+<li><strong>ReDoc</strong> sur <code>/redoc</code> : interface de documentation lisible orientée lecture, plus adaptée à une documentation destinée aux consommateurs de l'API.</li>
+</ul>
+<p>Le fichier JSON brut de la spécification est accessible sur <code>/openapi.json</code>.</p>
+<div class="code-block"><pre><code class="language-python"># Ces URLs sont disponibles automatiquement dès qu'une application FastAPI est démarrée
+# http://localhost:8000/docs       → Swagger UI
+# http://localhost:8000/redoc      → ReDoc
+# http://localhost:8000/openapi.json → Spécification JSON brute
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>L'avantage clé : la documentation est <strong>synchronisée avec le code</strong> par construction. Il est impossible d'oublier de mettre à jour la doc quand on modifie un endpoint — FastAPI régénère la spécification à chaque démarrage du serveur à partir du code source.</p>
+<div class="callout note"><div class="callout-title">Enrichir la documentation</div><p>Les métadonnées des endpoints (description, exemples de valeurs, nom d'affichage) se renseignent via les paramètres des décorateurs et les attributs des modèles Pydantic. Le Chapitre 2 détaillera comment documenter précisément chaque endpoint.</p></div>
+<h3>Personnaliser les métadonnées de l'application</h3>
+<div class="code-block"><pre><code class="language-python">from fastapi import FastAPI
+
+app = FastAPI(
+    title=&quot;API Catalogue&quot;,
+    description=&quot;API de gestion de produits et de commandes&quot;,
+    version=&quot;1.0.0&quot;,
+    contact={
+        &quot;name&quot;: &quot;Formateur Dawan&quot;,
+        &quot;email&quot;: &quot;formation@dawan.fr&quot;,
+    },
+    license_info={
+        &quot;name&quot;: &quot;MIT&quot;,
+    },
+)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Ces métadonnées apparaissent en en-tête de Swagger UI et sont intégrées dans le fichier <code>openapi.json</code>.</p>
+</div>
+
+<div id="tab-postman-tester-une-api" class="tab-content">
+<h3>Présentation</h3>
+<p>Postman est un client HTTP graphique qui permet de construire, envoyer et inspecter des requêtes HTTP sans écrire de code. C'est l'outil de test manuel de référence pour les développeurs d'API, aussi bien en développement que pour tester une API tierce.</p>
+<p>Pour une API FastAPI, Postman complète Swagger UI en permettant :</p>
+<ul>
+<li>De sauvegarder des requêtes dans des collections organisées par projet</li>
+<li>De définir des variables d'environnement (URL de base, jeton d'authentification) réutilisables entre requêtes</li>
+<li>D'enchaîner des appels avec des scripts pre-request et post-response (JavaScript)</li>
+<li>De partager une collection avec une équipe</li>
+</ul>
+<div class="callout tip"><div class="callout-title">Swagger UI ou Postman ?</div><p>En développement, Swagger UI est plus rapide à utiliser pour tester un endpoint isolément (pas de configuration). Postman est préférable dès qu'il faut automatiser des séquences de test ou partager une collection de requêtes avec d'autres personnes.</p></div>
+<h3>Tester un endpoint FastAPI depuis Postman</h3>
+<ol>
+<li>Démarrer le serveur FastAPI (voir section suivante)</li>
+<li>Dans Postman, créer une nouvelle requête : méthode <code>GET</code>, URL <code>http://localhost:8000/</code></li>
+<li>Cliquer <strong>Send</strong> → inspecter le corps de la réponse (JSON), le code de statut (200), les en-têtes</li>
+<li>Tester un endpoint <code>POST</code> : sélectionner l'onglet <strong>Body</strong>, choisir <strong>raw → JSON</strong>, saisir le corps JSON, envoyer</li>
+</ol>
+<p>Pour les endpoints protégés par jeton JWT (Chapitre 3), Postman permet de définir une variable <code>{{token}}</code> dans l'environnement et de l'injecter automatiquement dans l'en-tête <code>Authorization: Bearer {{token}}</code> de toutes les requêtes de la collection.</p>
+</div>
+
+<div id="tab-installation-et-premier-projet-fastapi" class="tab-content">
+<h3>Prérequis et installation</h3>
+<p>Python 3.11 ou supérieur est requis. L'usage d'un environnement virtuel (<code>venv</code>) est impératif pour isoler les dépendances du projet.</p>
+<div class="code-block"><pre><code class="language-bash"># 1. Vérifier la version de Python
+python --version
+# Python 3.11.x ou supérieur attendu
+
+# 2. Créer un dossier de projet
+mkdir api-catalogue
+cd api-catalogue
+
+# 3. Créer et activer l'environnement virtuel
+python -m venv .venv
+
+# Sous Linux/macOS
+source .venv/bin/activate
+
+# Sous Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+
+# 4. Installer FastAPI et le serveur Uvicorn
+pip install &quot;fastapi[standard]&quot;
+# Installe FastAPI, Uvicorn, Pydantic, python-multipart,
+# httpx (client de test), et les dépendances standard
+
+# 5. Vérifier l'installation
+pip show fastapi
+# Name: fastapi
+# Version: 0.115.x
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout warn"><div class="callout-title"><code>fastapi</code> vs <code>fastapi[standard]</code></div><p><code>pip install fastapi</code> installe uniquement le package FastAPI sans serveur. <code>pip install "fastapi[standard]"</code> installe également Uvicorn, le serveur HTTP recommandé, ainsi que les extras habituellement nécessaires en développement. Installer uniquement <code>fastapi</code> sans <code>uvicorn</code> empêche de lancer le serveur avec la commande <code>fastapi dev</code>.</p></div>
+<h3>Structure d'un projet FastAPI</h3>
+<p>Un projet FastAPI simple a la structure suivante. Les projets réels, abordés au Chapitre 3, utilisent une organisation plus modulaire (routeurs séparés, couche de dépendances, schémas distincts du code métier).</p>
+<div class="code-block"><pre><code>api-catalogue/
+├── .venv/                  ← Environnement virtuel (ne pas versionner)
+├── main.py                 ← Point d'entrée de l'application
+├── requirements.txt        ← Dépendances du projet
+└── README.md
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># requirements.txt — pincer les versions en production
+fastapi[standard]&gt;=0.115.0
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Premier fichier <code>main.py</code></h3>
+<div class="code-block"><pre><code class="language-python"># main.py
+from fastapi import FastAPI
+
+app = FastAPI(
+    title=&quot;API Catalogue&quot;,
+    description=&quot;Premier projet FastAPI — formation Dawan&quot;,
+    version=&quot;0.1.0&quot;,
+)
+
+
+@app.get(&quot;/&quot;)
+def read_root():
+    &quot;&quot;&quot;Point d'entrée de l'API — retourne un message de bienvenue.&quot;&quot;&quot;
+    return {&quot;message&quot;: &quot;Bienvenue sur l'API Catalogue&quot;}
+
+
+@app.get(&quot;/articles/{article_id}&quot;)
+def get_article(article_id: int):
+    &quot;&quot;&quot;Retourne un article fictif identifié par son ID entier.&quot;&quot;&quot;
+    return {&quot;id&quot;: article_id, &quot;titre&quot;: f&quot;Article numéro {article_id}&quot;}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Plusieurs points méritent d'être soulignés :</p>
+<ul>
+<li><code>app = FastAPI(...)</code> instancie l'application. Les paramètres <code>title</code>, <code>description</code> et <code>version</code> alimentent la documentation Swagger.</li>
+<li><code>@app.get("/")</code> est un <strong>décorateur d'opération</strong> : il enregistre la fonction <code>read_root</code> comme gestionnaire des requêtes <code>GET /</code>. Il existe <code>@app.post</code>, <code>@app.put</code>, <code>@app.delete</code>, <code>@app.patch</code> pour les autres méthodes HTTP.</li>
+<li><code>article_id: int</code> est une annotation de type Python ordinaire — FastAPI l'utilise pour extraire le paramètre de chemin depuis l'URL, le convertir en entier et retourner un <code>422</code> si la conversion échoue.</li>
+<li>La fonction retourne un dictionnaire Python ordinaire — FastAPI le sérialise automatiquement en JSON avec les en-têtes <code>Content-Type: application/json</code> appropriés.</li>
+</ul>
+<h3>Démarrer le serveur de développement</h3>
+<div class="code-block"><pre><code class="language-bash"># Depuis le dossier api-catalogue, avec .venv activé
+
+# Option 1 — CLI FastAPI (recommandé en développement)
+fastapi dev main.py
+# INFO: Will watch for changes in these directories: ['/path/api-catalogue']
+# INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+# INFO: Started reloader process [12345] using WatchFiles
+# INFO: Started server process [12346]
+# INFO: Application startup complete.
+
+# Option 2 — Uvicorn directement
+uvicorn main:app --reload
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Le flag <code>--reload</code> (actif par défaut avec <code>fastapi dev</code>) déclenche un rechargement automatique du serveur dès qu'un fichier Python du projet est modifié — indispensable en développement pour voir les modifications sans redémarrer manuellement.</p>
+<p>Une fois le serveur démarré :</p>
+<ul>
+<li><code>http://localhost:8000/</code> → <code>{"message": "Bienvenue sur l'API Catalogue"}</code></li>
+<li><code>http://localhost:8000/articles/42</code> → <code>{"id": 42, "titre": "Article numéro 42"}</code></li>
+<li><code>http://localhost:8000/docs</code> → Swagger UI</li>
+</ul>
+<div class="callout tip"><div class="callout-title">Résultat attendu dans le terminal</div><p>Le terminal affiche une ligne <code>INFO: Application startup complete.</code> quand le serveur est prêt. Si vous voyez une erreur <code>ModuleNotFoundError</code>, vérifiez que l'environnement virtuel est activé (le nom du venv doit apparaître au début du prompt shell).</p></div>
+<h3>Explorer la documentation Swagger</h3>
+<p>Ouvrir <code>http://localhost:8000/docs</code> dans un navigateur. Swagger UI affiche :</p>
+<ol>
+<li>Le titre et la description de l'application</li>
+<li>La liste des endpoints groupés par tag (par défaut, un seul groupe "default")</li>
+<li>Pour chaque endpoint : méthode HTTP (badge coloré), URL, description, bouton <strong>Try it out</strong></li>
+</ol>
+<p>Cliquer sur <strong>GET /articles/{article_id}</strong> → <strong>Try it out</strong> → saisir <code>42</code> dans le champ <code>article_id</code> → <strong>Execute</strong> → observer la requête <code>curl</code> générée, le code de réponse <code>200</code> et le corps JSON retourné.</p>
+<p>Essayer de saisir <code>abc</code> à la place de <code>42</code> → <strong>Execute</strong> → observer le code <code>422 Unprocessable Entity</code> et le corps d'erreur détaillé produit par la validation Pydantic :</p>
+<div class="code-block"><pre><code class="language-json">{
+  &quot;detail&quot;: [
+    {
+      &quot;type&quot;: &quot;int_parsing&quot;,
+      &quot;loc&quot;: [&quot;path&quot;, &quot;article_id&quot;],
+      &quot;msg&quot;: &quot;Input should be a valid integer, unable to parse string as an integer&quot;,
+      &quot;input&quot;: &quot;abc&quot;
+    }
+  ]
+}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Cette réponse structurée — retournée automatiquement sans aucun code de gestion d'erreur dans le gestionnaire — est l'un des atouts majeurs de FastAPI pour le débogage et pour les clients qui consomment l'API.</p>
+<div class="callout note"><div class="callout-title">La documentation est un contrat vivant</div><p>Chaque fois que vous ajoutez ou modifiez une route dans <code>main.py</code>, Swagger UI reflète immédiatement le changement au prochain rechargement de la page. Il n'y a pas de fichier OpenAPI à maintenir manuellement — FastAPI le génère à la volée depuis le code.</p></div>
+<h3>Fichier <code>requirements.txt</code> et bonnes pratiques</h3>
+<p>Toujours tenir à jour le fichier <code>requirements.txt</code> (ou <code>pyproject.toml</code> avec <code>uv</code>/<code>poetry</code>) pour permettre à un autre développeur (ou à un pipeline CI/CD) de recréer exactement le même environnement.</p>
+<div class="code-block"><pre><code class="language-bash"># Générer requirements.txt à partir de l'environnement courant
+pip freeze &gt; requirements.txt
+
+# Recréer l'environnement depuis requirements.txt
+pip install -r requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout warn"><div class="callout-title">Ne pas versionner le dossier <code>.venv</code></div><p>Ajouter <code>.venv/</code> à <code>.gitignore</code>. L'environnement virtuel contient des binaires spécifiques à l'OS et ne doit jamais être partagé via Git. Seul <code>requirements.txt</code> (ou <code>pyproject.toml</code>) est versionné — il permet à chacun de recréer l'environnement localement.</p></div>
+<h3>Vérification finale</h3>
+<p>À l'issue de ce chapitre, l'environnement suivant doit fonctionner :</p>
+<div class="code-block"><pre><code class="language-bash"># Toutes ces commandes s'exécutent dans le dossier api-catalogue, .venv activé
+fastapi dev main.py             # serveur démarré sans erreur
+# → http://localhost:8000/      : {&quot;message&quot;: &quot;Bienvenue sur l'API Catalogue&quot;}
+# → http://localhost:8000/articles/5 : {&quot;id&quot;: 5, &quot;titre&quot;: &quot;Article numéro 5&quot;}
+# → http://localhost:8000/docs  : Swagger UI avec 2 endpoints visibles
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Un test depuis Postman confirme que les réponses JSON sont bien formées et que le code de statut est <code>200 OK</code>.</p>
+</div>
+
+<div id="tab-travaux-pratiques" class="tab-content">
+<div class="exercice">
+<h3>Exercice 1 — Analyser une API publique avec Postman</h3>
+<p>Vous disposez d'un accès à l'API publique JSONPlaceholder (<code>https://jsonplaceholder.typicode.com</code>), une fausse API REST de test qui expose des ressources <code>posts</code>, <code>users</code> et <code>comments</code>.</p>
+<p><strong>Travail à réaliser :</strong></p>
+<p>Créez dans Postman une collection nommée <strong>"Formation FastAPI — Chapitre 1"</strong> contenant quatre requêtes :</p>
+<ol>
+<li><code>GET /posts</code> — récupérer la liste des 100 posts</li>
+<li><code>GET /posts/1</code> — récupérer le post d'identifiant 1</li>
+<li><code>GET /users/1</code> — récupérer le profil de l'utilisateur 1</li>
+<li><code>POST /posts</code> avec un corps JSON <code>{"title": "Test", "body": "Contenu de test", "userId": 1}</code></li>
+</ol>
+<p><strong>Critères de validation :</strong></p>
+<ul>
+<li>Chaque requête retourne un code de statut HTTP correct (200 ou 201)</li>
+<li>La variable d'environnement <code>{{base_url}}</code> = <code>https://jsonplaceholder.typicode.com</code> est définie et utilisée dans toutes les URLs</li>
+<li>Vous pouvez identifier, dans la réponse de <code>GET /posts/1</code>, les champs retournés et leur type JSON (chaîne, entier, etc.)</li>
+<li>Vous expliquez pourquoi la requête <code>POST /posts</code> retourne un <code>201</code> et non un <code>200</code></li>
+</ul>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p>Vous allez explorer l'API publique JSONPlaceholder pour vous familiariser avec Postman et avec le format des réponses HTTP REST.</p>
+<p><strong>Étape 1 — Créer l'environnement Postman</strong></p>
+<ol>
+<li>Ouvrez Postman et cliquez sur <strong>Environments</strong> (icône d'œil en haut à droite)</li>
+<li>Cliquez <strong>Add</strong> → nommez l'environnement <code>Formation FastAPI</code></li>
+<li>Ajoutez une variable : <code>base_url</code> = <code>https://jsonplaceholder.typicode.com</code></li>
+<li>Cliquez <strong>Save</strong> puis sélectionnez cet environnement dans le sélecteur en haut à droite</li>
+</ol>
+<p><strong>Étape 2 — Créer la collection</strong></p>
+<ol>
+<li>Cliquez <strong>Collections</strong> → <strong>New Collection</strong> → nommez-la <code>Formation FastAPI — Chapitre 1</code></li>
+<li>Pour chaque requête ci-dessous, cliquez <strong>Add a request</strong> dans la collection</li>
+</ol>
+<p><strong>Étape 3 — Requête GET /posts</strong></p>
+<ol>
+<li>Méthode : <code>GET</code>, URL : <code>{{base_url}}/posts</code></li>
+<li>Cliquez <strong>Send</strong></li>
+<li>Observez : code de statut <code>200 OK</code>, onglet <strong>Body</strong> affiche un tableau JSON de 100 objets, onglet <strong>Headers</strong> montre <code>Content-Type: application/json</code></li>
+<li>Sauvegardez la requête (Ctrl+S) avec le nom <code>Lister tous les posts</code></li>
+</ol>
+<p><strong>Étape 4 — Requête GET /posts/1</strong></p>
+<ol>
+<li>Méthode : <code>GET</code>, URL : <code>{{base_url}}/posts/1</code></li>
+<li>
+<p>Cliquez <strong>Send</strong> → observez le corps JSON :
+   <code>json
+   { "userId": 1, "id": 1, "title": "...", "body": "..." }</code></p>
+</li>
+<li>
+<p>Identifiez les types : <code>userId</code> et <code>id</code> sont des entiers, <code>title</code> et <code>body</code> sont des chaînes</p>
+</li>
+<li>Sauvegardez sous <code>Récupérer le post 1</code></li>
+</ol>
+<p><strong>Étape 5 — Requête GET /users/1</strong></p>
+<ol>
+<li>Méthode : <code>GET</code>, URL : <code>{{base_url}}/users/1</code></li>
+<li>Cliquez <strong>Send</strong> → observez la structure imbriquée (objet <code>address</code> dans la réponse)</li>
+<li>Sauvegardez sous <code>Récupérer l'utilisateur 1</code></li>
+</ol>
+<p><strong>Étape 6 — Requête POST /posts</strong></p>
+<ol>
+<li>Méthode : <code>POST</code>, URL : <code>{{base_url}}/posts</code></li>
+<li>Onglet <strong>Body</strong> → sélectionnez <strong>raw</strong> → dans le menu déroulant, choisissez <strong>JSON</strong></li>
+<li>
+<p>Saisissez le corps :
+   <code>json
+   {
+     "title": "Test",
+     "body": "Contenu de test",
+     "userId": 1
+   }</code></p>
+</li>
+<li>
+<p>Cliquez <strong>Send</strong> → observez le code <code>201 Created</code> (JSONPlaceholder simule la création)</p>
+</li>
+<li>La différence avec <code>200 OK</code> : <code>201</code> indique que la ressource a été <strong>créée</strong>, pas seulement lue</li>
+<li>Sauvegardez sous <code>Créer un post</code></li>
+</ol>
+<hr /></div></details>
+</div>
+<div class="exercice">
+<h3>Exercice 2 — Premier projet FastAPI</h3>
+<p>Créez un projet FastAPI nommé <code>api-bibliotheque</code> qui expose les routes suivantes :</p>
+<ul>
+<li><code>GET /</code> — retourne <code>{"service": "API Bibliothèque", "version": "0.1.0"}</code></li>
+<li><code>GET /livres/{livre_id}</code> — retourne <code>{"id": livre_id, "titre": "Livre fictif", "auteur": "Auteur inconnu"}</code></li>
+<li><code>GET /auteurs/{auteur_id}/livres</code> — retourne <code>{"auteur_id": auteur_id, "livres": []}</code></li>
+</ul>
+<p><strong>Critères de validation :</strong></p>
+<ul>
+<li>Le projet est dans un dossier dédié avec un environnement virtuel activé et <code>requirements.txt</code> à jour</li>
+<li>Le serveur démarre sans erreur avec <code>fastapi dev main.py</code></li>
+<li>Les trois routes répondent avec les codes et corps attendus</li>
+<li>Swagger UI sur <code>/docs</code> affiche les trois routes avec leurs paramètres de chemin</li>
+<li>Envoyer <code>GET /livres/abc</code> retourne un <code>422</code> (validation automatique du type <code>int</code>)</li>
+</ul>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p>Vous allez créer un projet FastAPI complet avec trois routes.</p>
+<p><strong>Étape 1 — Mettre en place le projet</strong></p>
+<div class="code-block"><pre><code class="language-bash"># Créer le dossier et l'environnement virtuel
+mkdir api-bibliotheque
+cd api-bibliotheque
+python -m venv .venv
+
+# Activer (Windows PowerShell)
+.venv\Scripts\Activate.ps1
+# Activer (Linux/macOS)
+# source .venv/bin/activate
+
+# Installer FastAPI
+pip install &quot;fastapi[standard]&quot;
+
+# Créer requirements.txt
+pip freeze &gt; requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 2 — Créer le fichier <code>.gitignore</code></strong></p>
+<div class="code-block"><pre><code>.venv/
+__pycache__/
+*.pyc
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 3 — Écrire <code>main.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python"># main.py
+from fastapi import FastAPI
+
+app = FastAPI(
+    title=&quot;API Bibliothèque&quot;,
+    description=&quot;Gestion de livres et d'auteurs — Formation FastAPI Dawan&quot;,
+    version=&quot;0.1.0&quot;,
+)
+
+
+@app.get(&quot;/&quot;)
+def read_root():
+    &quot;&quot;&quot;Point d'entrée — informations sur l'API.&quot;&quot;&quot;
+    return {&quot;service&quot;: &quot;API Bibliothèque&quot;, &quot;version&quot;: &quot;0.1.0&quot;}
+
+
+@app.get(&quot;/livres/{livre_id}&quot;)
+def get_livre(livre_id: int):
+    &quot;&quot;&quot;Retourne un livre fictif par son identifiant entier.&quot;&quot;&quot;
+    return {&quot;id&quot;: livre_id, &quot;titre&quot;: &quot;Livre fictif&quot;, &quot;auteur&quot;: &quot;Auteur inconnu&quot;}
+
+
+@app.get(&quot;/auteurs/{auteur_id}/livres&quot;)
+def get_livres_auteur(auteur_id: int):
+    &quot;&quot;&quot;Retourne les livres d'un auteur (liste vide pour l'instant).&quot;&quot;&quot;
+    return {&quot;auteur_id&quot;: auteur_id, &quot;livres&quot;: []}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 4 — Démarrer le serveur</strong></p>
+<div class="code-block"><pre><code class="language-bash">fastapi dev main.py
+# → INFO: Application startup complete.
+# → INFO: Uvicorn running on http://127.0.0.1:8000
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 5 — Tester les routes</strong></p>
+<p>Ouvrez un navigateur ou Postman et vérifiez :</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>URL</th>
+<th>Résultat attendu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>http://localhost:8000/</code></td>
+<td><code>{"service": "API Bibliothèque", "version": "0.1.0"}</code></td>
+</tr>
+<tr>
+<td><code>http://localhost:8000/livres/7</code></td>
+<td><code>{"id": 7, "titre": "Livre fictif", "auteur": "Auteur inconnu"}</code></td>
+</tr>
+<tr>
+<td><code>http://localhost:8000/auteurs/3/livres</code></td>
+<td><code>{"auteur_id": 3, "livres": []}</code></td>
+</tr>
+<tr>
+<td><code>http://localhost:8000/livres/abc</code></td>
+<td>Code <code>422</code> avec message d'erreur Pydantic</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Étape 6 — Explorer Swagger UI</strong></p>
+<ol>
+<li>Ouvrez <code>http://localhost:8000/docs</code></li>
+<li>Vérifiez que les trois routes apparaissent avec leurs paramètres</li>
+<li>Utilisez <strong>Try it out</strong> sur <code>GET /livres/{livre_id}</code> → saisissez <code>7</code> → <strong>Execute</strong></li>
+<li>Observez la requête <code>curl</code> générée par Swagger UI</li>
+</ol></div></details>
+</div>
+</div>
+
+<div id="tab-quiz" class="tab-content">
+<div id="quiz-container">
+<div class="quiz-question" id="q1">
+  <h4>Question 1 — Quel style architectural a été décrit par Roy Fielding dans sa thèse de doctorat en 2000 et est aujourd'hui la base de la grande majorité des API publiques ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(1,'a')">A) SOAP</button>
+    <button class="quiz-option" onclick="answer(1,'b')">B) GraphQL</button>
+    <button class="quiz-option" onclick="answer(1,'c')">C) REST</button>
+    <button class="quiz-option" onclick="answer(1,'d')">D) RPC</button>
+  </div>
+  <div class="quiz-feedback" id="fb1"></div>
+</div>
+<div class="quiz-question" id="q2">
+  <h4>Question 2 — Parmi les propositions suivantes, laquelle décrit correctement une opération <strong>idempotente</strong> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(2,'a')">A) <code>POST /articles</code> — crée un nouvel article à chaque appel</button>
+    <button class="quiz-option" onclick="answer(2,'b')">B) <code>DELETE /articles/42</code> — supprime l'article 42, résultat identique peu importe le nombre d'appels</button>
+    <button class="quiz-option" onclick="answer(2,'c')">C) <code>PATCH /articles/42</code> — met à jour partiellement l'article 42, résultat variable</button>
+    <button class="quiz-option" onclick="answer(2,'d')">D) <code>POST /paiements</code> — débite le compte client à chaque appel</button>
+  </div>
+  <div class="quiz-feedback" id="fb2"></div>
+</div>
+<div class="quiz-question" id="q3">
+  <h4>Question 3 — Quel code de statut HTTP FastAPI retourne-t-il automatiquement quand la validation Pydantic d'un paramètre d'entrée échoue ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(3,'a')">A) 400 Bad Request</button>
+    <button class="quiz-option" onclick="answer(3,'b')">B) 404 Not Found</button>
+    <button class="quiz-option" onclick="answer(3,'c')">C) 422 Unprocessable Entity</button>
+    <button class="quiz-option" onclick="answer(3,'d')">D) 500 Internal Server Error</button>
+  </div>
+  <div class="quiz-feedback" id="fb3"></div>
+</div>
+<div class="quiz-question" id="q4">
+  <h4>Question 4 — Sur quelle URL Swagger UI est-il disponible par défaut dans une application FastAPI démarrée sur <code>localhost:8000</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(4,'a')">A) <code>http://localhost:8000/swagger</code></button>
+    <button class="quiz-option" onclick="answer(4,'b')">B) <code>http://localhost:8000/api-docs</code></button>
+    <button class="quiz-option" onclick="answer(4,'c')">C) <code>http://localhost:8000/docs</code></button>
+    <button class="quiz-option" onclick="answer(4,'d')">D) <code>http://localhost:8000/openapi</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb4"></div>
+</div>
+<div class="quiz-question" id="q5">
+  <h4>Question 5 — Quelle bibliothèque Python est responsable de la validation automatique des données d'entrée dans FastAPI ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(5,'a')">A) Marshmallow</button>
+    <button class="quiz-option" onclick="answer(5,'b')">B) WTForms</button>
+    <button class="quiz-option" onclick="answer(5,'c')">C) Cerberus</button>
+    <button class="quiz-option" onclick="answer(5,'d')">D) Pydantic</button>
+  </div>
+  <div class="quiz-feedback" id="fb5"></div>
+</div>
+<div class="quiz-question" id="q6">
+  <h4>Question 6 — Quelle commande installe FastAPI avec le serveur Uvicorn et les dépendances standard de développement ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(6,'a')">A) <code>pip install fastapi</code></button>
+    <button class="quiz-option" onclick="answer(6,'b')">B) <code>pip install "fastapi[standard]"</code></button>
+    <button class="quiz-option" onclick="answer(6,'c')">C) <code>pip install fastapi uvicorn --extras</code></button>
+    <button class="quiz-option" onclick="answer(6,'d')">D) <code>pip install fastapi-full</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb6"></div>
+</div>
+<div class="quiz-question" id="q7">
+  <h4>Question 7 — Quelle est la différence fondamentale entre <code>401 Unauthorized</code> et <code>403 Forbidden</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(7,'a')">A) <code>401</code> est pour les erreurs de syntaxe JSON, <code>403</code> pour les erreurs de validation</button>
+    <button class="quiz-option" onclick="answer(7,'b')">B) <code>401</code> indique que l'utilisateur n'est pas authentifié, <code>403</code> qu'il est authentifié mais non autorisé</button>
+    <button class="quiz-option" onclick="answer(7,'c')">C) <code>401</code> est retourné par le client, <code>403</code> par le serveur</button>
+    <button class="quiz-option" onclick="answer(7,'d')">D) Ils sont interchangeables selon le framework</button>
+  </div>
+  <div class="quiz-feedback" id="fb7"></div>
+</div>
+<div class="quiz-question" id="q8">
+  <h4>Question 8 — Dans FastAPI, que représente l'annotation <code>: int</code> dans <code>def get_article(article_id: int)</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(8,'a')">A) Un commentaire Python sans effet sur le comportement</button>
+    <button class="quiz-option" onclick="answer(8,'b')">B) Une indication qui force FastAPI à extraire et convertir <code>article_id</code> depuis l'URL, et à retourner 422 si la conversion échoue</button>
+    <button class="quiz-option" onclick="answer(8,'c')">C) Une restriction qui empêche le déploiement si le type ne correspond pas</button>
+    <button class="quiz-option" onclick="answer(8,'d')">D) Une métadonnée de documentation sans validation</button>
+  </div>
+  <div class="quiz-feedback" id="fb8"></div>
+</div>
+<div class="quiz-question" id="q9">
+  <h4>Question 9 — Quel serveur ASGI est recommandé et installé par défaut avec <code>fastapi[standard]</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(9,'a')">A) Gunicorn</button>
+    <button class="quiz-option" onclick="answer(9,'b')">B) Waitress</button>
+    <button class="quiz-option" onclick="answer(9,'c')">C) Uvicorn</button>
+    <button class="quiz-option" onclick="answer(9,'d')">D) Hypercorn</button>
+  </div>
+  <div class="quiz-feedback" id="fb9"></div>
+</div>
+<div class="quiz-question" id="q10">
+  <h4>Question 10 — Dans le contexte FastAPI, que signifie le sigle <strong>ASGI</strong> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(10,'a')">A) Asynchronous Server Gateway Interface</button>
+    <button class="quiz-option" onclick="answer(10,'b')">B) Advanced Server Group Interface</button>
+    <button class="quiz-option" onclick="answer(10,'c')">C) Application Service Gateway Integration</button>
+    <button class="quiz-option" onclick="answer(10,'d')">D) Asynchronous Standard General Interface</button>
+  </div>
+  <div class="quiz-feedback" id="fb10"></div>
+</div>
+</div>
+<div class="quiz-score" id="quiz-score">
+  <div class="score-num" id="score-display">0 / 10</div>
+  <p id="score-msg"></p>
+  <button class="btn-restart" onclick="restartQuiz()">Recommencer</button>
+</div>
+</div>
+  </div>
+</div>
+
+<script>
+// ─── THEME ──────────────────────────────────────────────────────────────────
+(function () {
+  const root = document.documentElement;
+  const stored = localStorage.getItem('dawan-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  updateToggleLabel();
+})();
+
+function updateToggleLabel() {
+  const current = document.documentElement.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.getElementById('theme-icon').textContent = current === 'dark' ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = current === 'dark' ? 'Sombre' : 'Clair';
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('dawan-theme', next);
+  updateToggleLabel();
+}
+
+// ─── TABS ───────────────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.side-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  document.querySelector('.content').scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// ─── COPY CODE ──────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = 'Copié !'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── QUIZ ────────────────────────────────────────────────────────────────────
+const answers = { 1:'c', 2:'b', 3:'c', 4:'c', 5:'d', 6:'b', 7:'b', 8:'b', 9:'c', 10:'a' };
+const feedbacks = {
+  1: { c: "Exact ! Roy Fielding a décrit REST (Representational State Transfer) dans sa thèse en 2000. SOAP est une norme W3C née en 1998, GraphQL a été créé par Facebook en 2012 (section \"Web Services — du SOAP au REST\").", wrong: "Non. La bonne réponse est C) REST — Roy Fielding a décrit REST (Representational State Transfer) dans sa thèse en 2000. SOAP est une norme W3C née en 1998, GraphQL a été créé par Facebook en 2012 (section \"Web Services — du SOAP au REST\")." },
+  2: { b: "Exact ! L'idempotence signifie que répéter l'opération donne le même résultat : l'article 42 est absent, que l'appel soit fait une ou dix fois. <code>POST</code> crée à chaque appel — il n'est pas idempotent (section \"Les méthodes HTTP et leur sémantique\").", wrong: "Non. La bonne réponse est B) <code>DELETE /articles/42</code> — supprime l'article 42, résultat identique peu importe le nombre d'appels — L'idempotence signifie que répéter l'opération donne le même résultat : l'article 42 est absent, que l'appel soit fait une ou dix fois. <code>POST</code> crée à chaque appel — il n'est pas idempotent (section \"Les méthodes HTTP et leur sémantique\")." },
+  3: { c: "Exact ! FastAPI retourne automatiquement un <code>422</code> avec un corps JSON détaillé quand la validation Pydantic échoue sur les paramètres d'entrée, sans que le développeur n'écrive de code de gestion d'erreur (section \"Explorer la documentation Swagger\").", wrong: "Non. La bonne réponse est C) 422 Unprocessable Entity — FastAPI retourne automatiquement un <code>422</code> avec un corps JSON détaillé quand la validation Pydantic échoue sur les paramètres d'entrée, sans que le développeur n'écrive de code de gestion d'erreur (section \"Explorer la documentation Swagger\")." },
+  4: { c: "Exact ! FastAPI expose Swagger UI sur <code>/docs</code> et ReDoc sur <code>/redoc</code> par défaut (section \"Swagger UI et ReDoc\").", wrong: "Non. La bonne réponse est C) <code>http://localhost:8000/docs</code> — FastAPI expose Swagger UI sur <code>/docs</code> et ReDoc sur <code>/redoc</code> par défaut (section \"Swagger UI et ReDoc\")." },
+  5: { d: "Exact ! Pydantic (v2 depuis FastAPI 0.100) est la bibliothèque de validation et de sérialisation de données intégrée à FastAPI (section \"Architecture interne de FastAPI\").", wrong: "Non. La bonne réponse est D) Pydantic — Pydantic (v2 depuis FastAPI 0.100) est la bibliothèque de validation et de sérialisation de données intégrée à FastAPI (section \"Architecture interne de FastAPI\")." },
+  6: { b: "Exact ! Les guillemets sont nécessaires dans la plupart des shells ; l'extra <code>[standard]</code> installe Uvicorn, httpx et les autres dépendances recommandées (section \"Prérequis et installation\").", wrong: "Non. La bonne réponse est B) <code>pip install \"fastapi[standard]\"</code> — Les guillemets sont nécessaires dans la plupart des shells ; l'extra <code>[standard]</code> installe Uvicorn, httpx et les autres dépendances recommandées (section \"Prérequis et installation\")." },
+  7: { b: "Exact ! <code>401</code> concerne l'authentification (jeton absent ou invalide) ; <code>403</code> concerne l'autorisation (identité connue, mais permission refusée) (section \"Les codes de statut HTTP essentiels\").", wrong: "Non. La bonne réponse est B) <code>401</code> indique que l'utilisateur n'est pas authentifié, <code>403</code> qu'il est authentifié mais non autorisé — <code>401</code> concerne l'authentification (jeton absent ou invalide) ; <code>403</code> concerne l'autorisation (identité connue, mais permission refusée) (section \"Les codes de statut HTTP essentiels\")." },
+  8: { b: "Exact ! FastAPI utilise les annotations de type Python pour la validation automatique des paramètres (section \"Premier fichier main.py\").", wrong: "Non. La bonne réponse est B) Une indication qui force FastAPI à extraire et convertir <code>article_id</code> depuis l'URL, et à retourner 422 si la conversion échoue — FastAPI utilise les annotations de type Python pour la validation automatique des paramètres (section \"Premier fichier main.py\")." },
+  9: { c: "Exact ! Uvicorn est le serveur ASGI recommandé, fondé sur <code>uvloop</code> et <code>httptools</code>, installé via <code>fastapi[standard]</code> (section \"Architecture interne de FastAPI\").", wrong: "Non. La bonne réponse est C) Uvicorn — Uvicorn est le serveur ASGI recommandé, fondé sur <code>uvloop</code> et <code>httptools</code>, installé via <code>fastapi[standard]</code> (section \"Architecture interne de FastAPI\")." },
+  10: { a: "Exact ! ASGI est le successeur asynchrone de WSGI, permettant aux frameworks Python de gérer des connexions concurrentes efficacement (section \"Architecture interne de FastAPI\").", wrong: "Non. La bonne réponse est A) Asynchronous Server Gateway Interface — ASGI est le successeur asynchrone de WSGI, permettant aux frameworks Python de gérer des connexions concurrentes efficacement (section \"Architecture interne de FastAPI\")." }
+};
+const QUIZ_TOTAL = 10;
+let score = 0;
+let answered = {};
+
+function answer(qNum, choice) {
+  if (answered[qNum]) return;
+  answered[qNum] = true;
+  score += (choice === answers[qNum]) ? 1 : 0;
+  const qEl = document.getElementById('q' + qNum);
+  qEl.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = true;
+    const ltr = btn.textContent.trim()[0].toLowerCase();
+    if (ltr === answers[qNum]) btn.classList.add('correct');
+    else if (ltr === choice) btn.classList.add('wrong');
+  });
+  const fb = feedbacks[qNum];
+  document.getElementById('fb' + qNum).textContent = (choice === answers[qNum]) ? fb[answers[qNum]] : fb.wrong;
+  if (Object.keys(answered).length === QUIZ_TOTAL) showScore();
+}
+
+function showScore() {
+  const el = document.getElementById('quiz-score');
+  el.style.display = 'block';
+  document.getElementById('score-display').textContent = score + ' / ' + QUIZ_TOTAL;
+  const ratio = score / QUIZ_TOTAL;
+  let msg;
+  if (ratio === 1) msg = 'Parfait ! Toutes les réponses sont correctes.';
+  else if (ratio >= .8) msg = 'Très bien ! Vous maîtrisez l\'essentiel.';
+  else if (ratio >= .6) msg = 'Pas mal ! Relisez les points manqués.';
+  else if (ratio >= .4) msg = 'Quelques notions à revoir.';
+  else msg = 'Revoyez le cours avant de continuer.';
+  document.getElementById('score-msg').textContent = msg;
+}
+
+function restartQuiz() {
+  score = 0; answered = {};
+  document.getElementById('quiz-score').style.display = 'none';
+  document.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('correct','wrong');
+  });
+  document.querySelectorAll('.quiz-feedback').forEach(fb => fb.textContent = '');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Support interactif de formation Python Avancé : FastAPI + ORM : 05 — SQLAlchemy avancé et intégration avec FastAPI">
+<title>05 — SQLAlchemy avancé et intégration avec FastAPI</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --primary: #f0883e; --primary2: #ffa657;
+  --success: #3fb950; --warning: #d29922; --danger: #f85149;
+  --text: #e6edf3; --text-muted: #8b949e; --code-bg: #010409; --radius: 10px;
+  --topbar-h: 3.25rem;
+}
+:root[data-theme="light"] {
+  --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+  --primary: #bc4c00; --primary2: #953800;
+  --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+  --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+    --primary: #bc4c00; --primary2: #953800;
+    --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+    --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.7; transition: background .2s, color .2s; }
+
+/* TOPBAR — fixe, ne bouge jamais au scroll */
+.topbar {
+  position: sticky; top: 0; z-index: 200; height: var(--topbar-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .9rem; padding: 0 1rem;
+}
+.topbar .badge {
+  flex: 0 0 auto; background: var(--primary); color: #0d1117;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.topbar a.chapter-title {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: .5rem;
+  text-decoration: none; color: var(--text); font-weight: 700; font-size: .92rem;
+  overflow: hidden;
+}
+.topbar a.chapter-title:hover { color: var(--primary); }
+.topbar a.chapter-title .num { color: var(--primary); flex: 0 0 auto; }
+.topbar a.chapter-title .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-links { flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; }
+.topbar-link {
+  white-space: nowrap; padding: .4rem .8rem; border: 1px solid var(--border); border-radius: 20px;
+  font-size: .8rem; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: all .2s;
+}
+.topbar-link:hover { color: var(--primary); border-color: var(--primary); }
+.theme-toggle {
+  flex: 0 0 auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: .4rem .7rem; border-radius: 20px; font-size: .8rem; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.theme-toggle:hover { border-color: var(--primary); }
+
+/* LAYOUT — sidebar gauche + contenu */
+.layout { display: flex; align-items: flex-start; }
+.sidebar {
+  flex: 0 0 280px; width: 280px;
+  position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem 1rem 2rem;
+}
+.objectifs {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .8rem 1rem; margin-bottom: 1.25rem;
+}
+.objectifs-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.objectifs ul { margin: .4rem 0 0 1.1rem; }
+.objectifs li { font-size: .82rem; color: var(--text-muted); margin-bottom: .3rem; line-height: 1.4; }
+.side-nav { display: flex; flex-direction: column; gap: .1rem; }
+.side-nav button {
+  text-align: left; background: none; border: none; border-left: 3px solid transparent;
+  color: var(--text-muted); padding: .55rem .7rem; font-size: .87rem; font-weight: 500;
+  cursor: pointer; border-radius: 0 6px 6px 0; transition: all .15s;
+}
+.side-nav button:hover { color: var(--text); background: var(--surface2); }
+.side-nav button.active { color: var(--primary); border-left-color: var(--primary); background: var(--surface2); font-weight: 600; }
+.side-nav-sep { height: 1px; background: var(--border); margin: .6rem 0; }
+
+.content { flex: 1 1 auto; min-width: 0; }
+.tab-content { display: none; padding: 2rem 2.5rem 4rem; max-width: 1100px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* SECTIONS */
+h2 { font-size: 1.25rem; color: var(--primary2); margin: 1.8rem 0 .8rem; border-left: 3px solid var(--primary); padding-left: .75rem; }
+h3 { font-size: 1.05rem; color: var(--text); margin: 1.4rem 0 .6rem; }
+p { margin-bottom: .9rem; }
+ul, ol { padding-left: 1.4rem; margin-bottom: .9rem; }
+li { margin-bottom: .35rem; }
+
+/* RESSOURCES — liste sous forme de cartes plutôt que de puces */
+#tab-ressources ul { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: .5rem; }
+#tab-ressources li {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .75rem 1rem; margin-bottom: 0;
+}
+#tab-ressources li a { color: var(--primary2); font-weight: 600; text-decoration: none; }
+#tab-ressources li a:hover { text-decoration: underline; }
+
+/* AIDE — divulgation progressive pas-à-pas */
+details.aide { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+details.aide summary {
+  cursor: pointer; padding: .8rem 1.1rem; font-weight: 600; color: var(--primary);
+  list-style: none; display: flex; align-items: center; gap: .5rem;
+}
+details.aide summary::-webkit-details-marker { display: none; }
+details.aide summary::before { content: "▶"; font-size: .7rem; transition: transform .15s; }
+details.aide[open] summary::before { transform: rotate(90deg); }
+details.aide .aide-body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); margin-top: .2rem; padding-top: 1rem; }
+img { max-width: 100%; height: auto; display: block; margin: 1rem auto; }
+
+/* EXERCICE — un bloc par atelier, avec son aide pas-à-pas attachée juste en dessous */
+.exercice { padding: 1.3rem 0; border-top: 1px solid var(--border); }
+.exercice:first-of-type { border-top: none; padding-top: 0; }
+.exercice h3 { margin: 0 0 .8rem; color: var(--primary2); }
+
+/* CALLOUTS */
+.callout { border-radius: var(--radius); padding: .9rem 1.1rem; margin: 1.2rem 0; border-left: 4px solid; background: var(--surface2); }
+.callout.note   { border-color: var(--primary); }
+.callout.tip    { border-color: var(--success); }
+.callout.warn   { border-color: var(--warning); }
+.callout.danger { border-color: var(--danger); }
+.callout p:last-child { margin-bottom: 0; }
+.callout-title { font-weight: 700; font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+.callout.note   .callout-title { color: var(--primary); }
+.callout.tip    .callout-title { color: var(--success); }
+.callout.warn   .callout-title { color: var(--warning); }
+.callout.danger .callout-title { color: var(--danger); }
+
+/* TABLES */
+.table-wrap { overflow-x: auto; margin: 1rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th { background: var(--surface2); color: var(--primary2); text-align: left; padding: .6rem .9rem; font-weight: 600; border: 1px solid var(--border); }
+td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+tr:hover td { background: var(--surface2); }
+
+/* CODE */
+.code-block { position: relative; margin: 1rem 0; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1rem 1rem 1.2rem; overflow-x: auto; }
+code { font-family: 'Consolas', 'Cascadia Code', monospace; font-size: .88rem; color: var(--primary2); }
+p code, li code, td code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .05rem .35rem; }
+.copy-btn {
+  position: absolute; top: .5rem; right: .5rem;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  padding: .25rem .6rem; font-size: .75rem; border-radius: 5px; cursor: pointer; transition: all .2s;
+}
+.copy-btn:hover { background: var(--primary); color: #0d1117; }
+.copy-btn.copied { background: var(--success); color: #0d1117; }
+
+/* QUIZ */
+.quiz-question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; margin-bottom: 1.2rem; }
+.quiz-question h4 { color: var(--primary2); margin-bottom: .9rem; font-size: .98rem; }
+.quiz-options { display: flex; flex-direction: column; gap: .5rem; }
+.quiz-option {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: .6rem .9rem; cursor: pointer;
+  font-size: .9rem; transition: all .2s; text-align: left; color: var(--text);
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--primary); }
+.quiz-option.correct { border-color: var(--success); color: var(--success); }
+.quiz-option.wrong   { border-color: var(--danger);  color: var(--danger);  }
+.quiz-option:disabled { cursor: default; }
+.quiz-feedback { margin-top: .6rem; font-size: .87rem; color: var(--text-muted); font-style: italic; }
+.quiz-score {
+  background: var(--surface2); border: 1px solid var(--primary);
+  border-radius: var(--radius); padding: 1.5rem; text-align: center; margin-top: 1.5rem; display: none;
+}
+.quiz-score .score-num { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+.quiz-score p { color: var(--text-muted); margin-top: .4rem; }
+.btn-restart { background: var(--primary); color: #0d1117; border: none; padding: .6rem 1.4rem; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 1rem; font-size: .9rem; }
+.btn-restart:hover { background: var(--primary2); }
+
+/* RESPONSIVE — sidebar devient une barre horizontale sous 900px */
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: static; width: 100%; height: auto; max-height: 40vh;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .side-nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: .3rem; }
+  .side-nav button { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; border-radius: 6px 6px 0 0; }
+  .side-nav button.active { border-left-color: transparent; border-bottom-color: var(--primary); }
+  .side-nav-sep { display: none; }
+  .tab-content { padding: 1.5rem 1.2rem 3rem; }
+  .topbar a.chapter-title { font-size: .82rem; }
+}
+</style>
+<link rel="stylesheet" href="assets/course-common.css">
+<script src="assets/course-common.js" defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="badge">Python Avancé : FastAPI + ORM</span>
+  <a class="chapter-title" href="index.html" title="Retour à l'accueil de la formation">
+    <span class="num">05</span><span class="txt">SQLAlchemy avancé et intégration avec FastAPI</span>
+  </a>
+  <div class="topbar-links">
+    <a href="annexes.html" class="topbar-link">Annexes ↗</a>
+    <a class="topbar-link" href="index.html">Sommaire</a>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Basculer entre thème clair et sombre">
+      <span id="theme-icon">🌙</span> <span id="theme-label">Sombre</span>
+    </button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="objectifs"><span class="objectifs-label">Objectifs</span><ul><li>Distinguer lazy loading et eager loading et corriger le problème du syndrome des N+1 requêtes</li><li>Intégrer SQLAlchemy dans FastAPI via une dépendance de session par requête</li><li>Construire une API CRUD complète avec FastAPI + SQLAlchemy + Pydantic avec schémas distincts</li><li>Implémenter l&#x27;authentification JWT avec persistance des utilisateurs en base de données</li><li>Réaliser un projet fil rouge : API catalogue avec utilisateurs, articles et authentification</li></ul></div>
+    <nav class="side-nav" id="main-nav">
+      <button class="active" onclick="showTab('objectifs-du-chapitre')">Objectifs du chapitre</button>
+  <button class="" onclick="showTab('requetes-avancees-et-optimisations')">Requêtes avancées et optimisations</button>
+  <button class="" onclick="showTab('integration-sqlalchemy-dans-fastapi')">Intégration SQLAlchemy dans FastAPI</button>
+  <button class="" onclick="showTab('projet-fil-rouge-api-catalogue-complet')">Projet fil rouge — API catalogue complet</button>
+  <button class="" onclick="showTab('tests-d-integration-avec-base-de-donnees')">Tests d&#x27;intégration avec base de données</button>
+  <button class="" onclick="showTab('recapitulatif-de-la-semaine-du-web-service-a-l-api-persistee')">Récapitulatif de la semaine — du Web Service à l&#x27;API persistée</button>
+  <button class="" onclick="showTab('travaux-pratiques')">Travaux pratiques</button>
+  <button class="" onclick="showTab('quiz')">Quiz</button>
+    </nav>
+  </aside>
+  <div class="content">
+    <div id="tab-objectifs-du-chapitre" class="tab-content active">
+<p>À l'issue de ce chapitre, chaque stagiaire est capable de :</p>
+<ul>
+<li>Expliquer le lazy loading et l'eager loading et choisir la stratégie adaptée</li>
+<li>Identifier et corriger le syndrome des N+1 requêtes avec <code>joinedload()</code> et <code>selectinload()</code></li>
+<li>Injecter une Session SQLAlchemy par requête HTTP dans FastAPI via <code>Depends(get_db)</code></li>
+<li>Concevoir les schémas Pydantic de sortie compatibles avec les modèles SQLAlchemy (<code>from_attributes=True</code>)</li>
+<li>Implémenter un CRUD complet (Create, Read, Update, Delete) sur des modèles persistés</li>
+<li>Connecter le flux d'authentification JWT au modèle <code>Utilisateur</code> en base de données</li>
+<li>Déployer le projet complet avec Docker Compose (API + PostgreSQL)</li>
+</ul>
+</div>
+
+<div id="tab-requetes-avancees-et-optimisations" class="tab-content">
+<h3>Lazy loading — le comportement par défaut</h3>
+<p>Par défaut, SQLAlchemy utilise le <strong>lazy loading</strong> pour les relations : quand on accède à un attribut de relation (ex. <code>article.auteur</code>), SQLAlchemy exécute un SELECT supplémentaire au moment de l'accès. Ce comportement est pratique mais peut devenir problématique.</p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import select
+from models import Article
+
+stmt = select(Article).where(Article.publie == True)
+articles = db.execute(stmt).scalars().all()
+
+# Chaque accès à article.auteur exécute un SELECT supplémentaire !
+for article in articles:
+    print(article.auteur.username)  # SELECT * FROM utilisateurs WHERE id = ?
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Si on récupère 50 articles et qu'on accède à leur auteur, cela génère 50 requêtes supplémentaires : c'est le syndrome des N+1.</p>
+<h3>Le syndrome des N+1 requêtes</h3>
+<p>Le problème des N+1 (N+1 query problem) est l'une des causes les plus fréquentes de lenteur dans les applications utilisant un ORM. Il se produit quand :</p>
+<ol>
+<li>Une première requête charge N entités (1 requête)</li>
+<li>Pour chaque entité, une requête supplémentaire charge sa relation (N requêtes)
+Total : <strong>N+1 requêtes</strong> au lieu d'une seule bien formulée.</li>
+</ol>
+<div class="code-block"><pre><code class="language-python"># ❌ N+1 problème
+articles = db.execute(select(Article)).scalars().all()  # 1 requête
+for article in articles:
+    print(article.auteur.username)  # +1 requête par article → N requêtes
+    # 51 requêtes pour 50 articles !
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout danger"><div class="callout-title">Le N+1 est souvent invisible en développement</div><p>Avec 10 articles en développement, l'impact du N+1 est imperceptible. En production avec 1 000 articles, chaque appel à l'endpoint génère 1 001 requêtes SQL — la base de données est surchargée et la réponse prend des secondes. Toujours mesurer avec des outils de profiling SQL avant de déployer.</p></div>
+<h3>Eager loading — charger les relations en avance</h3>
+<p>SQLAlchemy propose deux stratégies d'eager loading qui résolvent le N+1 :</p>
+<p><strong><code>joinedload()</code></strong> : charge les relations avec un <code>JOIN</code> dans la même requête principale. Efficace pour les relations 1-à-1 et 1-à-n côté "many" (ex. article + son auteur).</p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy.orm import joinedload
+
+# Une seule requête avec JOIN
+stmt = (
+    select(Article)
+    .where(Article.publie == True)
+    .options(joinedload(Article.auteur))  # JOIN avec la table utilisateurs
+)
+articles = db.execute(stmt).unique().scalars().all()
+
+# Maintenant article.auteur ne déclenche plus de requête SQL
+for article in articles:
+    print(article.auteur.username)  # Données déjà chargées — 0 requête supplémentaire
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong><code>selectinload()</code></strong> : charge les relations avec une deuxième requête <code>IN</code> (plus efficace que <code>joinedload</code> pour les collections — relations 1-à-n côté "one" ou n-à-n).</p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy.orm import selectinload
+
+# Deux requêtes : 1 pour les articles, 1 pour tous les tags en une fois
+stmt = (
+    select(Article)
+    .options(selectinload(Article.tags))  # SELECT ... WHERE article_id IN (1, 2, 3, ...)
+)
+articles = db.execute(stmt).scalars().all()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout tip"><div class="callout-title">Règle de choix joinedload vs selectinload</div><ul>
+<li><code>joinedload()</code> : relation to-one (article → auteur) — le JOIN est efficace car une seule ligne par article</li>
+<li><code>selectinload()</code> : relation to-many (utilisateur → ses articles, article → ses tags) — le JOIN duplique les lignes et <code>unique()</code> est requis, <code>selectinload</code> avec un <code>IN</code> est généralement plus propre</li>
+</ul></div>
+<p><img alt="Comparaison lazy loading, joinedload et selectinload — requêtes SQL générées" src="../08-images/ch05-loading-strategies.svg" /></p>
+<p>Le schéma ci-dessus compare les trois stratégies de chargement pour 3 articles avec leurs auteurs : lazy loading génère 4 requêtes (1 + 3×1), joinedload génère 1 requête avec JOIN, selectinload génère 2 requêtes (la collection en une seule requête IN).</p>
+<h3>Charger plusieurs niveaux de relation</h3>
+<div class="code-block"><pre><code class="language-python"># Charger articles + auteur + tags en une passe
+stmt = (
+    select(Article)
+    .options(
+        joinedload(Article.auteur),
+        selectinload(Article.tags),
+    )
+)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Requêtes avec agrégations avancées</h3>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import func, case, literal_column
+
+# Nombre d'articles publiés et non publiés par auteur
+stmt = (
+    select(
+        Utilisateur.username,
+        func.count(case((Article.publie == True, 1))).label(&quot;publies&quot;),
+        func.count(case((Article.publie == False, 1))).label(&quot;brouillons&quot;),
+    )
+    .join(Article, Article.auteur_id == Utilisateur.id)
+    .group_by(Utilisateur.username)
+    .having(func.count(Article.id) &gt; 0)
+    .order_by(func.count(Article.id).desc())
+)
+
+# Sous-requête (subquery)
+nb_articles_subq = (
+    select(func.count(Article.id))
+    .where(Article.auteur_id == Utilisateur.id)
+    .scalar_subquery()
+)
+stmt = select(Utilisateur, nb_articles_subq.label(&quot;nb_articles&quot;))
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+</div>
+
+<div id="tab-integration-sqlalchemy-dans-fastapi" class="tab-content">
+<h3>Session par requête avec Depends</h3>
+<p>L'intégration de SQLAlchemy dans FastAPI repose sur le système de dépendances : une fonction <code>get_db</code> crée une Session pour chaque requête HTTP et la ferme automatiquement à la fin, qu'il y ait eu une exception ou non.</p>
+<div class="code-block"><pre><code class="language-python"># database.py
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
+from typing import Generator
+
+DATABASE_URL = &quot;sqlite:///./app.db&quot;
+engine = create_engine(DATABASE_URL, connect_args={&quot;check_same_thread&quot;: False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+class Base(DeclarativeBase):
+    pass
+
+def get_db() -&gt; Generator[Session, None, None]:
+    &quot;&quot;&quot;Dépendance FastAPI : crée une Session SQLAlchemy par requête HTTP.&quot;&quot;&quot;
+    db = SessionLocal()
+    try:
+        yield db       # La requête HTTP est traitée ici
+    finally:
+        db.close()     # Toujours fermé, même si une exception est levée
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># Utilisation dans un gestionnaire
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from database import get_db
+
+@router.get(&quot;/{article_id}&quot;, response_model=ArticleReponse)
+def get_article(article_id: int, db: Session = Depends(get_db)):
+    article = db.get(Article, article_id)
+    if article is None:
+        raise HTTPException(status_code=404, detail=&quot;Article introuvable&quot;)
+    return article
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Schémas Pydantic compatibles avec SQLAlchemy</h3>
+<p>Pour que Pydantic puisse sérialiser un objet SQLAlchemy (qui n'est pas un dictionnaire), configurer le modèle Pydantic avec <code>model_config = {"from_attributes": True}</code>.</p>
+<div class="code-block"><pre><code class="language-python"># schemas/article.py
+from pydantic import BaseModel, ConfigDict
+from datetime import datetime
+from typing import Optional, List
+
+class TagSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    nom: str
+
+class AuteurSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    username: str
+
+class ArticleReponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    titre: str
+    contenu: str
+    publie: bool
+    date_creation: datetime
+    auteur: AuteurSchema          # Relation imbriquée
+    tags: List[TagSchema] = []    # Liste de tags
+
+class ArticleCreation(BaseModel):
+    titre: str
+    contenu: str
+    categorie: Optional[str] = None
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout note"><div class="callout-title"><code>from_attributes=True</code> remplace <code>orm_mode=True</code></div><p>Depuis Pydantic v2, <code>orm_mode = True</code> (Pydantic v1) est remplacé par <code>model_config = ConfigDict(from_attributes=True)</code>. L'ancien <code>orm_mode</code> génère un avertissement de dépréciation mais fonctionne encore.</p></div>
+</div>
+
+<div id="tab-projet-fil-rouge-api-catalogue-complet" class="tab-content">
+<p>Cette section construit pas à pas une API de gestion d'articles avec :</p>
+<ul>
+<li>Utilisateurs persistés en base (SQLite en développement, PostgreSQL en production)</li>
+<li>Authentification JWT connectée à la base de données</li>
+<li>CRUD complet sur les articles avec pagination</li>
+<li>Relations auteur-articles et articles-tags</li>
+</ul>
+<h3>Structure du projet final</h3>
+<div class="code-block"><pre><code>api-catalogue/
+├── main.py                     ← Point d'entrée
+├── database.py                 ← Engine, Session, Base, get_db
+├── models.py                   ← Modèles SQLAlchemy
+├── schemas/
+│   ├── __init__.py
+│   ├── utilisateur.py          ← Schémas Pydantic Utilisateur
+│   └── article.py              ← Schémas Pydantic Article
+├── routers/
+│   ├── __init__.py
+│   ├── auth.py                 ← POST /auth/token
+│   ├── utilisateurs.py         ← CRUD /utilisateurs
+│   └── articles.py             ← CRUD /articles
+├── auth.py                     ← JWT, hachage, dépendances
+├── alembic/
+│   └── versions/
+├── alembic.ini
+├── Dockerfile
+├── docker-compose.yml
+└── requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Couche de données — CRUD functions</h3>
+<p>Les fonctions CRUD sont extraites des gestionnaires pour favoriser la réutilisabilité et les tests unitaires.</p>
+<div class="code-block"><pre><code class="language-python"># crud/articles.py
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import select, func
+from models import Article, Tag
+from schemas.article import ArticleCreation, ArticleMiseAJour
+from typing import Optional
+
+def get_article(db: Session, article_id: int) -&gt; Optional[Article]:
+    stmt = (
+        select(Article)
+        .where(Article.id == article_id)
+        .options(joinedload(Article.auteur), selectinload(Article.tags))
+    )
+    return db.execute(stmt).unique().scalar_one_or_none()
+
+
+def list_articles(
+    db: Session,
+    skip: int = 0,
+    limit: int = 10,
+    publie: Optional[bool] = None,
+    auteur_id: Optional[int] = None,
+) -&gt; list[Article]:
+    stmt = (
+        select(Article)
+        .options(joinedload(Article.auteur), selectinload(Article.tags))
+        .order_by(Article.date_creation.desc())
+    )
+    if publie is not None:
+        stmt = stmt.where(Article.publie == publie)
+    if auteur_id is not None:
+        stmt = stmt.where(Article.auteur_id == auteur_id)
+    stmt = stmt.offset(skip).limit(limit)
+    return db.execute(stmt).unique().scalars().all()
+
+
+def create_article(db: Session, article: ArticleCreation, auteur_id: int) -&gt; Article:
+    db_article = Article(
+        titre=article.titre,
+        contenu=article.contenu,
+        auteur_id=auteur_id,
+    )
+    db.add(db_article)
+    db.commit()
+    db.refresh(db_article)
+    return db_article
+
+
+def update_article(db: Session, article_id: int, update: ArticleMiseAJour) -&gt; Optional[Article]:
+    db_article = db.get(Article, article_id)
+    if db_article is None:
+        return None
+    for field, value in update.model_dump(exclude_none=True).items():
+        setattr(db_article, field, value)
+    db.commit()
+    db.refresh(db_article)
+    return db_article
+
+
+def delete_article(db: Session, article_id: int) -&gt; bool:
+    db_article = db.get(Article, article_id)
+    if db_article is None:
+        return False
+    db.delete(db_article)
+    db.commit()
+    return True
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Routeur Articles complet</h3>
+<div class="code-block"><pre><code class="language-python"># routers/articles.py
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from database import get_db
+from auth import get_current_user, UtilisateurDansToken
+from schemas.article import ArticleCreation, ArticleMiseAJour, ArticleReponse
+from crud import articles as crud_articles
+from typing import List, Optional
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+
+@router.get(&quot;/&quot;, response_model=List[ArticleReponse])
+def list_articles(
+    page: int = Query(default=1, ge=1),
+    taille: int = Query(default=10, ge=1, le=100),
+    publie: Optional[bool] = None,
+    db: Session = Depends(get_db),
+):
+    skip = (page - 1) * taille
+    return crud_articles.list_articles(db, skip=skip, limit=taille, publie=publie)
+
+
+@router.post(&quot;/&quot;, response_model=ArticleReponse, status_code=201)
+def create_article(
+    article: ArticleCreation,
+    db: Session = Depends(get_db),
+    current_user: UtilisateurDansToken = Depends(get_current_user),
+):
+    return crud_articles.create_article(db, article, auteur_id=current_user.id)
+
+
+@router.get(&quot;/{article_id}&quot;, response_model=ArticleReponse)
+def get_article(article_id: int, db: Session = Depends(get_db)):
+    db_article = crud_articles.get_article(db, article_id)
+    if db_article is None:
+        raise HTTPException(status_code=404, detail=f&quot;Article {article_id} introuvable&quot;)
+    return db_article
+
+
+@router.patch(&quot;/{article_id}&quot;, response_model=ArticleReponse)
+def update_article(
+    article_id: int,
+    update: ArticleMiseAJour,
+    db: Session = Depends(get_db),
+    current_user: UtilisateurDansToken = Depends(get_current_user),
+):
+    db_article = crud_articles.get_article(db, article_id)
+    if db_article is None:
+        raise HTTPException(status_code=404, detail=&quot;Article introuvable&quot;)
+    if db_article.auteur_id != current_user.id and not current_user.est_admin:
+        raise HTTPException(status_code=403, detail=&quot;Vous ne pouvez modifier que vos propres articles&quot;)
+    updated = crud_articles.update_article(db, article_id, update)
+    return updated
+
+
+@router.delete(&quot;/{article_id}&quot;, status_code=204)
+def delete_article(
+    article_id: int,
+    db: Session = Depends(get_db),
+    current_user: UtilisateurDansToken = Depends(get_current_user),
+):
+    db_article = crud_articles.get_article(db, article_id)
+    if db_article is None:
+        raise HTTPException(status_code=404, detail=&quot;Article introuvable&quot;)
+    if db_article.auteur_id != current_user.id and not current_user.est_admin:
+        raise HTTPException(status_code=403, detail=&quot;Action non autorisée&quot;)
+    crud_articles.delete_article(db, article_id)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Authentification avec base de données</h3>
+<p>Contrairement au Chapitre 3 où les utilisateurs étaient stockés en mémoire, l'authentification s'appuie ici sur la table <code>utilisateurs</code>.</p>
+<div class="code-block"><pre><code class="language-python"># auth.py — version base de données
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+from models import Utilisateur
+
+def get_utilisateur_par_username(db: Session, username: str) -&gt; Optional[Utilisateur]:
+    return db.execute(
+        select(Utilisateur).where(Utilisateur.username == username)
+    ).scalar_one_or_none()
+
+def authentifier_utilisateur(db: Session, username: str, password: str) -&gt; Optional[Utilisateur]:
+    user = get_utilisateur_par_username(db, username)
+    if user is None or not pwd_context.verify(password, user.hashed_password):
+        return None
+    return user
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># routers/auth.py — version base de données
+@router.post(&quot;/token&quot;, response_model=TokenReponse)
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    user = authentifier_utilisateur(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail=&quot;Identifiants incorrects&quot;,
+                            headers={&quot;WWW-Authenticate&quot;: &quot;Bearer&quot;})
+    token = creer_jeton({&quot;sub&quot;: str(user.id)})  # On encode l'ID, pas le username
+    return {&quot;access_token&quot;: token, &quot;token_type&quot;: &quot;bearer&quot;}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># get_current_user — version base de données
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -&gt; Utilisateur:
+    exc = HTTPException(status_code=401, detail=&quot;Jeton invalide&quot;,
+                        headers={&quot;WWW-Authenticate&quot;: &quot;Bearer&quot;})
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get(&quot;sub&quot;)
+        if user_id is None:
+            raise exc
+    except JWTError:
+        raise exc
+    user = db.get(Utilisateur, int(user_id))
+    if user is None or not user.est_actif:
+        raise exc
+    return user
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout note"><div class="callout-title">Encoder l'ID ou le username dans le JWT ?</div><p>Encoder l'<code>id</code> (entier) est préférable au <code>username</code> : si l'utilisateur change de nom, le jeton existant reste valide. L'<code>id</code> ne change jamais. En revanche, n'encodez jamais d'informations liées aux permissions dans le JWT (est_admin, rôles) — ces informations doivent être rechargées depuis la base à chaque requête pour refléter les changements en temps réel.</p></div>
+<h3>Enregistrement des utilisateurs</h3>
+<div class="code-block"><pre><code class="language-python"># crud/utilisateurs.py
+from passlib.context import CryptContext
+from models import Utilisateur
+from schemas.utilisateur import UtilisateurCreation
+
+pwd_context = CryptContext(schemes=[&quot;bcrypt&quot;], deprecated=&quot;auto&quot;)
+
+def create_utilisateur(db: Session, user: UtilisateurCreation) -&gt; Utilisateur:
+    # Vérifier que le username et l'email ne sont pas déjà pris
+    existing = db.execute(
+        select(Utilisateur).where(
+            (Utilisateur.username == user.username) | (Utilisateur.email == user.email)
+        )
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=&quot;Un compte avec ce nom d'utilisateur ou cet email existe déjà&quot;
+        )
+
+    hashed = pwd_context.hash(user.password)
+    db_user = Utilisateur(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed,
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Déploiement avec Docker Compose</h3>
+<div class="code-block"><pre><code class="language-yaml"># docker-compose.yml — stack complète
+services:
+  api:
+    build: .
+    ports:
+      - &quot;8000:8000&quot;
+    environment:
+      DATABASE_URL: postgresql://api_user:api_password@db:5432/api_catalogue
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: api_catalogue
+      POSTGRES_USER: api_user
+      POSTGRES_PASSWORD: api_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - &quot;5432:5432&quot;
+    healthcheck:
+      test: [&quot;CMD-SHELL&quot;, &quot;pg_isready -U api_user -d api_catalogue&quot;]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-dockerfile"># Dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD [&quot;gunicorn&quot;, &quot;main:app&quot;, &quot;--workers&quot;, &quot;4&quot;,
+     &quot;--worker-class&quot;, &quot;uvicorn.workers.UvicornWorker&quot;,
+     &quot;--bind&quot;, &quot;0.0.0.0:8000&quot;]
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash"># Lancer la stack
+docker compose up --build
+
+# Appliquer les migrations dans le conteneur API
+docker compose exec api alembic upgrade head
+
+# Vérifier les logs
+docker compose logs -f api
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><img alt="Architecture de déploiement — API FastAPI + PostgreSQL avec Docker Compose" src="../08-images/ch05-deployment-architecture.svg" /></p>
+<p>Le schéma ci-dessus illustre la stack de déploiement Docker Compose : le service <code>api</code> (Gunicorn + Uvicorn + FastAPI) expose le port 8000 et se connecte au service <code>db</code> (PostgreSQL 16) via le réseau interne Docker. Le volume <code>postgres_data</code> persiste les données entre les redémarrages.</p>
+</div>
+
+<div id="tab-tests-d-integration-avec-base-de-donnees" class="tab-content">
+<h3>Base de données de test (SQLite en mémoire)</h3>
+<div class="code-block"><pre><code class="language-python"># tests/conftest.py
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from fastapi.testclient import TestClient
+from database import Base, get_db
+from main import app
+
+SQLALCHEMY_TEST_URL = &quot;sqlite:///:memory:&quot;
+
+@pytest.fixture(scope=&quot;function&quot;)
+def db_test():
+    &quot;&quot;&quot;Crée une base SQLite en mémoire, réinitialisée pour chaque test.&quot;&quot;&quot;
+    engine = create_engine(SQLALCHEMY_TEST_URL, connect_args={&quot;check_same_thread&quot;: False})
+    Base.metadata.create_all(bind=engine)
+    SessionTest = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionTest()
+    try:
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture(scope=&quot;function&quot;)
+def client(db_test):
+    &quot;&quot;&quot;TestClient avec la dépendance get_db remplacée par la DB de test.&quot;&quot;&quot;
+    def override_get_db():
+        try:
+            yield db_test
+        finally:
+            pass  # Fermeture gérée par la fixture db_test
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># tests/test_articles.py
+def test_crud_article_complet(client):
+    # 1. Créer un utilisateur
+    client.post(&quot;/utilisateurs/&quot;, json={
+        &quot;username&quot;: &quot;test_user&quot;,
+        &quot;email&quot;: &quot;test@ex.com&quot;,
+        &quot;password&quot;: &quot;secret123&quot;
+    })
+
+    # 2. Obtenir un jeton
+    r = client.post(&quot;/auth/token&quot;, data={&quot;username&quot;: &quot;test_user&quot;, &quot;password&quot;: &quot;secret123&quot;})
+    token = r.json()[&quot;access_token&quot;]
+    headers = {&quot;Authorization&quot;: f&quot;Bearer {token}&quot;}
+
+    # 3. Créer un article
+    r = client.post(&quot;/articles/&quot;, json={&quot;titre&quot;: &quot;Test article&quot;, &quot;contenu&quot;: &quot;Contenu test&quot;},
+                    headers=headers)
+    assert r.status_code == 201
+    article_id = r.json()[&quot;id&quot;]
+
+    # 4. Lire l'article
+    r = client.get(f&quot;/articles/{article_id}&quot;)
+    assert r.status_code == 200
+    assert r.json()[&quot;auteur&quot;][&quot;username&quot;] == &quot;test_user&quot;
+
+    # 5. Modifier
+    r = client.patch(f&quot;/articles/{article_id}&quot;, json={&quot;publie&quot;: True}, headers=headers)
+    assert r.json()[&quot;publie&quot;] is True
+
+    # 6. Supprimer
+    r = client.delete(f&quot;/articles/{article_id}&quot;, headers=headers)
+    assert r.status_code == 204
+
+    # 7. Vérifier la suppression
+    r = client.get(f&quot;/articles/{article_id}&quot;)
+    assert r.status_code == 404
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+</div>
+
+<div id="tab-recapitulatif-de-la-semaine-du-web-service-a-l-api-persistee" class="tab-content">
+<p>Cette formation a couvert l'intégralité du chemin entre une requête HTTP et une base de données relationnelle, en Python, avec les outils les plus adoptés de l'écosystème backend moderne.</p>
+<p><strong>Jour 1 (Chapitre 1)</strong> : concepts Web Services, HTTP, architecture REST, FastAPI et son positionnement, mise en place de l'environnement.</p>
+<p><strong>Jour 2 (Chapitre 2)</strong> : routage complet avec APIRouter, paramètres de chemin/query/corps, validation Pydantic, gestion des erreurs, traitements asynchrones.</p>
+<p><strong>Jour 3 (Chapitre 3)</strong> : système de dépendances, authentification OAuth2/JWT, CORS, tâches de fond, tests pytest, conteneurisation Docker.</p>
+<p><strong>Jour 4 (Chapitre 4)</strong> : principe ORM, SQLAlchemy Engine/Session/Base, modèles déclaratifs, relations (1-à-n, 1-à-1, n-à-n), migrations Alembic, requêtes CRUD.</p>
+<p><strong>Jour 5 (Chapitre 5)</strong> : lazy/eager loading, N+1, intégration SQLAlchemy + FastAPI via <code>Depends</code>, CRUD complet persisté, projet fil rouge, déploiement Docker Compose.</p>
+<div class="code-block"><pre><code>Requête HTTP
+    ↓
+Uvicorn (ASGI)
+    ↓
+FastAPI Router (routing, dépendances)
+    ↓
+Pydantic (validation des entrées)
+    ↓
+Gestionnaire (logique métier)
+    ↓
+SQLAlchemy Session (CRUD, jointures)
+    ↓
+PostgreSQL (persistance)
+    ↑
+SQLAlchemy ORM (résultats → objets Python)
+    ↑
+Pydantic response_model (filtrage de la sortie)
+    ↑
+FastAPI (sérialisation JSON)
+    ↑
+Réponse HTTP (200 / 201 / 204 / 404 / ...)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+</div>
+
+<div id="tab-travaux-pratiques" class="tab-content">
+<div class="exercice">
+<h3>Exercice 1 — Projet fil rouge : API Catalogue complet</h3>
+<p>Vous allez construire l'API Catalogue complète en intégrant SQLAlchemy + FastAPI, avec authentification JWT, CRUD persisté et déploiement Docker.</p>
+<p><strong>Fonctionnalités à implémenter :</strong></p>
+<ul>
+<li><strong>Utilisateurs</strong> : inscription (<code>POST /utilisateurs/</code>), profil (<code>GET /utilisateurs/moi</code>)</li>
+<li><strong>Authentification</strong> : <code>POST /auth/token</code>, jeton JWT avec ID utilisateur en base</li>
+<li><strong>Articles</strong> : CRUD complet, auteur extrait du JWT, pagination, filtre par <code>publie</code></li>
+<li><strong>Tags</strong> : <code>POST /tags/</code>, <code>GET /tags/</code>, assignation d'un tag à un article (<code>PUT /articles/{id}/tags/{tag_id}</code>)</li>
+<li><strong>Autorisations</strong> : un utilisateur ne peut modifier/supprimer que ses propres articles (sauf admin)</li>
+</ul>
+<p><strong>Critères de validation :</strong></p>
+<ul>
+<li><code>docker compose up --build</code> démarre la stack sans erreur</li>
+<li><code>alembic upgrade head</code> applique toutes les migrations</li>
+<li>Les 5 flux suivants fonctionnent de bout en bout via Swagger UI :</li>
+<li>Inscription → login → créer un article → lister les articles → voir l'auteur dans la réponse</li>
+<li>Ajouter un tag → assigner au article → lister les articles avec leurs tags</li>
+<li>Tenter de modifier l'article d'un autre utilisateur → <code>403</code></li>
+<li>Tenter de modifier avec un jeton expiré ou invalide → <code>401</code></li>
+<li>Supprimer un article avec le compte admin → <code>204</code></li>
+<li><code>pytest tests/ -v</code> : au moins 10 tests passants, couverture <code>routers/</code> &gt; 75 %</li>
+</ul>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p>Vous allez assembler les briques des chapitres précédents en un projet complet.</p>
+<p><strong>Étape 1 — Préparer la structure</strong></p>
+<div class="code-block"><pre><code class="language-bash">mkdir api-catalogue &amp;&amp; cd api-catalogue
+python -m venv .venv &amp;&amp; .venv\Scripts\Activate.ps1
+pip install &quot;fastapi[standard]&quot; &quot;sqlalchemy[asyncio]&quot; alembic &quot;python-jose[cryptography]&quot; &quot;passlib[bcrypt]&quot; &quot;pydantic-settings&quot; psycopg2-binary gunicorn
+pip freeze &gt; requirements.txt
+mkdir routers schemas crud tests
+touch routers/__init__.py schemas/__init__.py crud/__init__.py tests/__init__.py
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 2 — <code>database.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase, Session
+from typing import Generator
+import os
+
+DATABASE_URL = os.getenv(&quot;DATABASE_URL&quot;, &quot;sqlite:///./app.db&quot;)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={&quot;check_same_thread&quot;: False} if &quot;sqlite&quot; in DATABASE_URL else {}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+class Base(DeclarativeBase):
+    pass
+
+def get_db() -&gt; Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 3 — <code>models.py</code></strong> (reprendre les modèles du Chapitre 4 et ajouter Tag)</p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import String, Boolean, Integer, Text, DateTime, ForeignKey, Table, Column, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from database import Base
+from datetime import datetime
+from typing import Optional
+
+articles_tags = Table(
+    &quot;articles_tags&quot;, Base.metadata,
+    Column(&quot;article_id&quot;, Integer, ForeignKey(&quot;articles.id&quot;), primary_key=True),
+    Column(&quot;tag_id&quot;, Integer, ForeignKey(&quot;tags.id&quot;), primary_key=True),
+)
+
+class Utilisateur(Base):
+    __tablename__ = &quot;utilisateurs&quot;
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(200), nullable=False)
+    est_actif: Mapped[bool] = mapped_column(Boolean, default=True)
+    est_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    date_creation: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    articles: Mapped[list[&quot;Article&quot;]] = relationship(&quot;Article&quot;, back_populates=&quot;auteur&quot;,
+                                                      cascade=&quot;all, delete-orphan&quot;)
+
+class Tag(Base):
+    __tablename__ = &quot;tags&quot;
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nom: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    articles: Mapped[list[&quot;Article&quot;]] = relationship(&quot;Article&quot;, secondary=articles_tags,
+                                                      back_populates=&quot;tags&quot;)
+
+class Article(Base):
+    __tablename__ = &quot;articles&quot;
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    titre: Mapped[str] = mapped_column(String(200), nullable=False)
+    contenu: Mapped[str] = mapped_column(Text, nullable=False)
+    publie: Mapped[bool] = mapped_column(Boolean, default=False)
+    date_creation: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    auteur_id: Mapped[int] = mapped_column(Integer, ForeignKey(&quot;utilisateurs.id&quot;), nullable=False)
+    auteur: Mapped[&quot;Utilisateur&quot;] = relationship(&quot;Utilisateur&quot;, back_populates=&quot;articles&quot;)
+    tags: Mapped[list[&quot;Tag&quot;]] = relationship(&quot;Tag&quot;, secondary=articles_tags, back_populates=&quot;articles&quot;)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 4 — <code>crud/articles.py</code></strong> (reprendre le code de la section "Couche de données")</p>
+<p><strong>Étape 5 — <code>auth.py</code></strong> (reprendre la version base de données de la section "Authentification")</p>
+<p><strong>Étape 6 — <code>main.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python">from fastapi import FastAPI
+from database import Base, engine
+from routers import auth, utilisateurs, articles, tags
+import models
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title=&quot;API Catalogue&quot;,
+    description=&quot;Formation Dawan — Python Avancé FastAPI + ORM&quot;,
+    version=&quot;1.0.0&quot;,
+)
+
+app.include_router(auth.router)
+app.include_router(utilisateurs.router)
+app.include_router(articles.router)
+app.include_router(tags.router)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 7 — Tester le flux complet via Swagger UI</strong></p>
+<ol>
+<li><code>fastapi dev main.py</code></li>
+<li>Ouvrir <code>http://localhost:8000/docs</code></li>
+<li><code>POST /utilisateurs/</code> → créer alice et bob</li>
+<li><strong>Authorize</strong> avec alice</li>
+<li><code>POST /tags/</code> → créer le tag "python"</li>
+<li><code>POST /articles/</code> → créer un article</li>
+<li><code>PUT /articles/1/tags/1</code> → assigner le tag python à l'article</li>
+<li><code>GET /articles/1</code> → vérifier que <code>auteur.username</code> et <code>tags</code> apparaissent dans la réponse</li>
+</ol>
+<hr /></div></details>
+</div>
+<div class="exercice">
+<h3>Exercice 2 — Corriger le N+1 dans une route existante</h3>
+<p>Voici une route qui souffre du problème N+1. Corrigez-la.</p>
+<p><strong>Route actuelle (problématique) :</strong></p>
+<div class="code-block"><pre><code class="language-python">@router.get(&quot;/&quot;, response_model=List[ArticleReponse])
+def list_articles(db: Session = Depends(get_db)):
+    articles = db.execute(select(Article)).scalars().all()
+    # Accès à article.auteur et article.tags dans la sérialisation → N+1
+    return articles
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Travail à réaliser :</strong></p>
+<ol>
+<li>Identifiez les deux relations concernées par le N+1 (<code>auteur</code> et <code>tags</code>)</li>
+<li>Corrigez la requête avec <code>joinedload()</code> pour l'auteur et <code>selectinload()</code> pour les tags</li>
+<li>
+<p>Activez le logging SQL de SQLAlchemy pour comptabiliser les requêtes avant/après :
+   <code>python
+   engine = create_engine(DATABASE_URL, echo=True)  # Affiche le SQL dans les logs</code></p>
+</li>
+<li>
+<p>Comparez le nombre de requêtes SQL pour 10 articles, avant et après la correction</p>
+</li>
+</ol>
+<p><strong>Critère de validation :</strong></p>
+<p>Avec <code>echo=True</code> et 10 articles en base, la route ne doit générer que <strong>2 requêtes SQL</strong> (1 SELECT articles + JOIN auteur, 1 SELECT tags IN).</p>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p><strong>Étape 1 — Reproduire le problème</strong></p>
+<p>Dans <code>crud/articles.py</code>, écrire temporairement la version naïve :</p>
+<div class="code-block"><pre><code class="language-python"># Version N+1 (à corriger)
+def list_articles_naive(db: Session) -&gt; list[Article]:
+    return db.execute(select(Article)).scalars().all()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Activer les logs SQL dans <code>database.py</code> :</p>
+<div class="code-block"><pre><code class="language-python">engine = create_engine(DATABASE_URL, echo=True, connect_args={&quot;check_same_thread&quot;: False})
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Créer 5 articles avec des auteurs différents, appeler <code>GET /articles/</code> et compter les lignes SQL dans le terminal.</p>
+<p><strong>Étape 2 — Corriger avec eager loading</strong></p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy.orm import joinedload, selectinload
+
+def list_articles(db: Session, skip: int = 0, limit: int = 10) -&gt; list[Article]:
+    stmt = (
+        select(Article)
+        .options(
+            joinedload(Article.auteur),       # to-one : auteur de l'article
+            selectinload(Article.tags),        # to-many : liste de tags
+        )
+        .order_by(Article.date_creation.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    return db.execute(stmt).unique().scalars().all()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 3 — Comparer</strong></p>
+<p>Relancer <code>GET /articles/</code> avec les logs SQL activés.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Stratégie</th>
+<th>Requêtes pour 5 articles</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lazy loading (avant)</td>
+<td>11 (1 + 5 auteurs + 5 tags)</td>
+</tr>
+<tr>
+<td>Eager loading (après)</td>
+<td>2 (1 SELECT articles+auteurs JOIN, 1 SELECT tags IN)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Désactiver <code>echo=True</code> avant le déploiement.</p></div></details>
+</div>
+</div>
+
+<div id="tab-quiz" class="tab-content">
+<div id="quiz-container">
+<div class="quiz-question" id="q1">
+  <h4>Question 1 — En quoi consiste le problème des <strong>N+1 requêtes</strong> avec un ORM ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(1,'a')">A) Une requête retourne N résultats au lieu du résultat attendu</button>
+    <button class="quiz-option" onclick="answer(1,'b')">B) Une première requête charge N entités, puis N requêtes supplémentaires chargent les relations de chacune</button>
+    <button class="quiz-option" onclick="answer(1,'c')">C) L'ORM exécute la même requête N fois à cause d'un bug de cache</button>
+    <button class="quiz-option" onclick="answer(1,'d')">D) La session limite à N+1 le nombre de connexions simultanées</button>
+  </div>
+  <div class="quiz-feedback" id="fb1"></div>
+</div>
+<div class="quiz-question" id="q2">
+  <h4>Question 2 — Quelle stratégie d'eager loading est la plus adaptée pour charger une relation <strong>to-one</strong> (ex. <code>article.auteur</code>) ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(2,'a')">A) <code>selectinload()</code></button>
+    <button class="quiz-option" onclick="answer(2,'b')">B) <code>lazyload()</code></button>
+    <button class="quiz-option" onclick="answer(2,'c')">C) <code>joinedload()</code></button>
+    <button class="quiz-option" onclick="answer(2,'d')">D) <code>subqueryload()</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb2"></div>
+</div>
+<div class="quiz-question" id="q3">
+  <h4>Question 3 — Pourquoi utiliser <code>.unique()</code> après un <code>joinedload()</code> sur une relation to-many avant <code>.scalars().all()</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(3,'a')">A) Pour éliminer les doublons de l'objet parent générés par le JOIN</button>
+    <button class="quiz-option" onclick="answer(3,'b')">B) Pour forcer SQLAlchemy à utiliser un index</button>
+    <button class="quiz-option" onclick="answer(3,'c')">C) Pour limiter le résultat à un seul objet</button>
+    <button class="quiz-option" onclick="answer(3,'d')">D) <code>.unique()</code> est requis pour toutes les requêtes SQLAlchemy 2.0</button>
+  </div>
+  <div class="quiz-feedback" id="fb3"></div>
+</div>
+<div class="quiz-question" id="q4">
+  <h4>Question 4 — Dans la dépendance <code>get_db()</code>, pourquoi placer <code>db.close()</code> dans un bloc <code>finally</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(4,'a')">A) Pour améliorer les performances du pool de connexions</button>
+    <button class="quiz-option" onclick="answer(4,'b')">B) Pour s'assurer que la session est fermée même si une exception est levée pendant le traitement de la requête</button>
+    <button class="quiz-option" onclick="answer(4,'c')">C) <code>finally</code> est requis par le protocole <code>yield</code> de FastAPI</button>
+    <button class="quiz-option" onclick="answer(4,'d')">D) Pour committer automatiquement les transactions en attente</button>
+  </div>
+  <div class="quiz-feedback" id="fb4"></div>
+</div>
+<div class="quiz-question" id="q5">
+  <h4>Question 5 — Que fait <code>model_config = ConfigDict(from_attributes=True)</code> dans un modèle Pydantic utilisé avec SQLAlchemy ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(5,'a')">A) Permet à Pydantic de lire les attributs d'un objet Python quelconque (pas seulement un dict)</button>
+    <button class="quiz-option" onclick="answer(5,'b')">B) Active la validation stricte des types SQLAlchemy</button>
+    <button class="quiz-option" onclick="answer(5,'c')">C) Configure Pydantic pour se connecter directement à la base de données</button>
+    <button class="quiz-option" onclick="answer(5,'d')">D) Remplace SQLAlchemy pour la sérialisation JSON</button>
+  </div>
+  <div class="quiz-feedback" id="fb5"></div>
+</div>
+<div class="quiz-question" id="q6">
+  <h4>Question 6 — Pourquoi est-il préférable d'encoder l'<code>id</code> de l'utilisateur (et non le <code>username</code>) dans le payload JWT ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(6,'a')">A) L'<code>id</code> est plus court et réduit la taille du jeton</button>
+    <button class="quiz-option" onclick="answer(6,'b')">B) L'<code>id</code> ne change jamais, contrairement au <code>username</code> qui peut être modifié</button>
+    <button class="quiz-option" onclick="answer(6,'c')">C) Le <code>username</code> ne peut pas être encodé en JSON</button>
+    <button class="quiz-option" onclick="answer(6,'d')">D) FastAPI impose d'utiliser l'<code>id</code> dans les jetons JWT</button>
+  </div>
+  <div class="quiz-feedback" id="fb6"></div>
+</div>
+<div class="quiz-question" id="q7">
+  <h4>Question 7 — Dans <code>crud/articles.py</code>, pourquoi extraire les fonctions CRUD des gestionnaires FastAPI dans un module séparé ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(7,'a')">A) FastAPI l'impose pour les projets avec SQLAlchemy</button>
+    <button class="quiz-option" onclick="answer(7,'b')">B) Pour respecter la séparation des responsabilités et faciliter les tests unitaires</button>
+    <button class="quiz-option" onclick="answer(7,'c')">C) Pour améliorer les performances des requêtes SQL</button>
+    <button class="quiz-option" onclick="answer(7,'d')">D) Pour éviter d'importer SQLAlchemy dans les routeurs</button>
+  </div>
+  <div class="quiz-feedback" id="fb7"></div>
+</div>
+<div class="quiz-question" id="q8">
+  <h4>Question 8 — Quelle configuration de la base de données de test est recommandée pour les tests pytest avec FastAPI et SQLAlchemy ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(8,'a')">A) Utiliser la même base de données que la production pour des tests réalistes</button>
+    <button class="quiz-option" onclick="answer(8,'b')">B) Utiliser une base SQLite en mémoire (<code>sqlite:///:memory:</code>) réinitialisée pour chaque test</button>
+    <button class="quiz-option" onclick="answer(8,'c')">C) Mocker entièrement SQLAlchemy avec <code>unittest.mock</code></button>
+    <button class="quiz-option" onclick="answer(8,'d')">D) Utiliser une base PostgreSQL dédiée aux tests</button>
+  </div>
+  <div class="quiz-feedback" id="fb8"></div>
+</div>
+<div class="quiz-question" id="q9">
+  <h4>Question 9 — Dans Docker Compose, à quoi sert la condition <code>service_healthy</code> dans le bloc <code>depends_on</code> du service <code>api</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(9,'a')">A) À vérifier que l'image Docker de l'API est à jour</button>
+    <button class="quiz-option" onclick="answer(9,'b')">B) À attendre que PostgreSQL soit prêt à accepter des connexions avant de démarrer l'API</button>
+    <button class="quiz-option" onclick="answer(9,'c')">C) À redémarrer automatiquement l'API si elle plante</button>
+    <button class="quiz-option" onclick="answer(9,'d')">D) À limiter les ressources CPU du service</button>
+  </div>
+  <div class="quiz-feedback" id="fb9"></div>
+</div>
+<div class="quiz-question" id="q10">
+  <h4>Question 10 — Quel est l'avantage principal de <code>selectinload()</code> sur <code>joinedload()</code> pour charger une collection (relation to-many) ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(10,'a')">A) <code>selectinload</code> est plus rapide car il utilise un cache interne</button>
+    <button class="quiz-option" onclick="answer(10,'b')">B) <code>selectinload</code> génère un <code>IN</code> propre sur les IDs, évitant la duplication de lignes du parent que le JOIN produit</button>
+    <button class="quiz-option" onclick="answer(10,'c')">C) <code>selectinload</code> supporte les transactions distribuées</button>
+    <button class="quiz-option" onclick="answer(10,'d')">D) <code>joinedload</code> ne fonctionne pas avec PostgreSQL</button>
+  </div>
+  <div class="quiz-feedback" id="fb10"></div>
+</div>
+</div>
+<div class="quiz-score" id="quiz-score">
+  <div class="score-num" id="score-display">0 / 10</div>
+  <p id="score-msg"></p>
+  <button class="btn-restart" onclick="restartQuiz()">Recommencer</button>
+</div>
+</div>
+  </div>
+</div>
+
+<script>
+// ─── THEME ──────────────────────────────────────────────────────────────────
+(function () {
+  const root = document.documentElement;
+  const stored = localStorage.getItem('dawan-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  updateToggleLabel();
+})();
+
+function updateToggleLabel() {
+  const current = document.documentElement.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.getElementById('theme-icon').textContent = current === 'dark' ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = current === 'dark' ? 'Sombre' : 'Clair';
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('dawan-theme', next);
+  updateToggleLabel();
+}
+
+// ─── TABS ───────────────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.side-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  document.querySelector('.content').scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// ─── COPY CODE ──────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = 'Copié !'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── QUIZ ────────────────────────────────────────────────────────────────────
+const answers = { 1:'b', 2:'c', 3:'a', 4:'b', 5:'a', 6:'b', 7:'b', 8:'b', 9:'b', 10:'b' };
+const feedbacks = {
+  1: { b: "Exact ! Le problème N+1 est la conséquence du lazy loading dans une boucle : 1 requête pour la liste + N requêtes individuelles pour les relations de chaque entité (section \"Le syndrome des N+1 requêtes\").", wrong: "Non. La bonne réponse est B) Une première requête charge N entités, puis N requêtes supplémentaires chargent les relations de chacune — Le problème N+1 est la conséquence du lazy loading dans une boucle : 1 requête pour la liste + N requêtes individuelles pour les relations de chaque entité (section \"Le syndrome des N+1 requêtes\")." },
+  2: { c: "Exact ! Pour une relation to-one, le JOIN est efficace : il ajoute des colonnes à chaque ligne mais ne multiplie pas le nombre de lignes. <code>selectinload</code> est préférable pour les collections (section \"Eager loading — charger les relations en avance\").", wrong: "Non. La bonne réponse est C) <code>joinedload()</code> — Pour une relation to-one, le JOIN est efficace : il ajoute des colonnes à chaque ligne mais ne multiplie pas le nombre de lignes. <code>selectinload</code> est préférable pour les collections (section \"Eager loading — charger les relations en avance\")." },
+  3: { a: "Exact ! Un JOIN avec une relation to-many duplique les lignes du parent (1 ligne par enfant). <code>unique()</code> déduplique les objets Python résultants (section \"Eager loading\").", wrong: "Non. La bonne réponse est A) Pour éliminer les doublons de l'objet parent générés par le JOIN — Un JOIN avec une relation to-many duplique les lignes du parent (1 ligne par enfant). <code>unique()</code> déduplique les objets Python résultants (section \"Eager loading\")." },
+  4: { b: "Exact ! <code>try/finally</code> garantit la fermeture de la session dans tous les cas de figure, évitant les fuites de connexions (section \"Session par requête avec Depends\").", wrong: "Non. La bonne réponse est B) Pour s'assurer que la session est fermée même si une exception est levée pendant le traitement de la requête — <code>try/finally</code> garantit la fermeture de la session dans tous les cas de figure, évitant les fuites de connexions (section \"Session par requête avec Depends\")." },
+  5: { a: "Exact ! Sans <code>from_attributes=True</code>, Pydantic ne sait lire que des dictionnaires. Cette option lui permet de lire les attributs d'instances SQLAlchemy (section \"Schémas Pydantic compatibles avec SQLAlchemy\").", wrong: "Non. La bonne réponse est A) Permet à Pydantic de lire les attributs d'un objet Python quelconque (pas seulement un dict) — Sans <code>from_attributes=True</code>, Pydantic ne sait lire que des dictionnaires. Cette option lui permet de lire les attributs d'instances SQLAlchemy (section \"Schémas Pydantic compatibles avec SQLAlchemy\")." },
+  6: { b: "Exact ! Encoder un identifiant immuable dans le JWT garantit que le jeton reste valide si l'utilisateur change son <code>username</code> (section \"Authentification avec base de données\").", wrong: "Non. La bonne réponse est B) L'<code>id</code> ne change jamais, contrairement au <code>username</code> qui peut être modifié — Encoder un identifiant immuable dans le JWT garantit que le jeton reste valide si l'utilisateur change son <code>username</code> (section \"Authentification avec base de données\")." },
+  7: { b: "Exact ! Les fonctions CRUD dans <code>crud/</code> peuvent être testées indépendamment des routes HTTP, en passant directement une session de test (section \"Couche de données — CRUD functions\").", wrong: "Non. La bonne réponse est B) Pour respecter la séparation des responsabilités et faciliter les tests unitaires — Les fonctions CRUD dans <code>crud/</code> peuvent être testées indépendamment des routes HTTP, en passant directement une session de test (section \"Couche de données — CRUD functions\")." },
+  8: { b: "Exact ! <code>sqlite:///:memory:</code> crée une base éphémère ultra-rapide, réinitialisée entre les tests, sans impact sur les données de développement (section \"Tests d'intégration avec base de données\").", wrong: "Non. La bonne réponse est B) Utiliser une base SQLite en mémoire (<code>sqlite:///:memory:</code>) réinitialisée pour chaque test — <code>sqlite:///:memory:</code> crée une base éphémère ultra-rapide, réinitialisée entre les tests, sans impact sur les données de développement (section \"Tests d'intégration avec base de données\")." },
+  9: { b: "Exact ! <code>service_healthy</code> attend que le <code>healthcheck</code> (<code>pg_isready</code>) passe, évitant que l'API tente de se connecter à une base qui n'est pas encore prête (section \"Déploiement avec Docker Compose\").", wrong: "Non. La bonne réponse est B) À attendre que PostgreSQL soit prêt à accepter des connexions avant de démarrer l'API — <code>service_healthy</code> attend que le <code>healthcheck</code> (<code>pg_isready</code>) passe, évitant que l'API tente de se connecter à une base qui n'est pas encore prête (section \"Déploiement avec Docker Compose\")." },
+  10: { b: "Exact ! Avec <code>joinedload</code> sur une collection, chaque ligne parente est dupliquée pour chaque enfant dans le résultat SQL, nécessitant <code>unique()</code>. <code>selectinload</code> fait deux requêtes propres et SQLAlchemy assemble les objets en mémoire (section \"Eager loading\").", wrong: "Non. La bonne réponse est B) <code>selectinload</code> génère un <code>IN</code> propre sur les IDs, évitant la duplication de lignes du parent que le JOIN produit — Avec <code>joinedload</code> sur une collection, chaque ligne parente est dupliquée pour chaque enfant dans le résultat SQL, nécessitant <code>unique()</code>. <code>selectinload</code> fait deux requêtes propres et SQLAlchemy assemble les objets en mémoire (section \"Eager loading\")." }
+};
+const QUIZ_TOTAL = 10;
+let score = 0;
+let answered = {};
+
+function answer(qNum, choice) {
+  if (answered[qNum]) return;
+  answered[qNum] = true;
+  score += (choice === answers[qNum]) ? 1 : 0;
+  const qEl = document.getElementById('q' + qNum);
+  qEl.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = true;
+    const ltr = btn.textContent.trim()[0].toLowerCase();
+    if (ltr === answers[qNum]) btn.classList.add('correct');
+    else if (ltr === choice) btn.classList.add('wrong');
+  });
+  const fb = feedbacks[qNum];
+  document.getElementById('fb' + qNum).textContent = (choice === answers[qNum]) ? fb[answers[qNum]] : fb.wrong;
+  if (Object.keys(answered).length === QUIZ_TOTAL) showScore();
+}
+
+function showScore() {
+  const el = document.getElementById('quiz-score');
+  el.style.display = 'block';
+  document.getElementById('score-display').textContent = score + ' / ' + QUIZ_TOTAL;
+  const ratio = score / QUIZ_TOTAL;
+  let msg;
+  if (ratio === 1) msg = 'Parfait ! Toutes les réponses sont correctes.';
+  else if (ratio >= .8) msg = 'Très bien ! Vous maîtrisez l\'essentiel.';
+  else if (ratio >= .6) msg = 'Pas mal ! Relisez les points manqués.';
+  else if (ratio >= .4) msg = 'Quelques notions à revoir.';
+  else msg = 'Revoyez le cours avant de continuer.';
+  document.getElementById('score-msg').textContent = msg;
+}
+
+function restartQuiz() {
+  score = 0; answered = {};
+  document.getElementById('quiz-score').style.display = 'none';
+  document.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('correct','wrong');
+  });
+  document.querySelectorAll('.quiz-feedback').forEach(fb => fb.textContent = '');
+}
+</script>
+</body>
+</html>

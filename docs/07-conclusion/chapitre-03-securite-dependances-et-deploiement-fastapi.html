@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Support interactif de formation Python Avancé : FastAPI + ORM : 03 — Sécurité, dépendances et déploiement FastAPI">
+<title>03 — Sécurité, dépendances et déploiement FastAPI</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --primary: #f0883e; --primary2: #ffa657;
+  --success: #3fb950; --warning: #d29922; --danger: #f85149;
+  --text: #e6edf3; --text-muted: #8b949e; --code-bg: #010409; --radius: 10px;
+  --topbar-h: 3.25rem;
+}
+:root[data-theme="light"] {
+  --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+  --primary: #bc4c00; --primary2: #953800;
+  --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+  --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+    --primary: #bc4c00; --primary2: #953800;
+    --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+    --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.7; transition: background .2s, color .2s; }
+
+/* TOPBAR — fixe, ne bouge jamais au scroll */
+.topbar {
+  position: sticky; top: 0; z-index: 200; height: var(--topbar-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .9rem; padding: 0 1rem;
+}
+.topbar .badge {
+  flex: 0 0 auto; background: var(--primary); color: #0d1117;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.topbar a.chapter-title {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: .5rem;
+  text-decoration: none; color: var(--text); font-weight: 700; font-size: .92rem;
+  overflow: hidden;
+}
+.topbar a.chapter-title:hover { color: var(--primary); }
+.topbar a.chapter-title .num { color: var(--primary); flex: 0 0 auto; }
+.topbar a.chapter-title .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-links { flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; }
+.topbar-link {
+  white-space: nowrap; padding: .4rem .8rem; border: 1px solid var(--border); border-radius: 20px;
+  font-size: .8rem; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: all .2s;
+}
+.topbar-link:hover { color: var(--primary); border-color: var(--primary); }
+.theme-toggle {
+  flex: 0 0 auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: .4rem .7rem; border-radius: 20px; font-size: .8rem; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.theme-toggle:hover { border-color: var(--primary); }
+
+/* LAYOUT — sidebar gauche + contenu */
+.layout { display: flex; align-items: flex-start; }
+.sidebar {
+  flex: 0 0 280px; width: 280px;
+  position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem 1rem 2rem;
+}
+.objectifs {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .8rem 1rem; margin-bottom: 1.25rem;
+}
+.objectifs-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.objectifs ul { margin: .4rem 0 0 1.1rem; }
+.objectifs li { font-size: .82rem; color: var(--text-muted); margin-bottom: .3rem; line-height: 1.4; }
+.side-nav { display: flex; flex-direction: column; gap: .1rem; }
+.side-nav button {
+  text-align: left; background: none; border: none; border-left: 3px solid transparent;
+  color: var(--text-muted); padding: .55rem .7rem; font-size: .87rem; font-weight: 500;
+  cursor: pointer; border-radius: 0 6px 6px 0; transition: all .15s;
+}
+.side-nav button:hover { color: var(--text); background: var(--surface2); }
+.side-nav button.active { color: var(--primary); border-left-color: var(--primary); background: var(--surface2); font-weight: 600; }
+.side-nav-sep { height: 1px; background: var(--border); margin: .6rem 0; }
+
+.content { flex: 1 1 auto; min-width: 0; }
+.tab-content { display: none; padding: 2rem 2.5rem 4rem; max-width: 1100px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* SECTIONS */
+h2 { font-size: 1.25rem; color: var(--primary2); margin: 1.8rem 0 .8rem; border-left: 3px solid var(--primary); padding-left: .75rem; }
+h3 { font-size: 1.05rem; color: var(--text); margin: 1.4rem 0 .6rem; }
+p { margin-bottom: .9rem; }
+ul, ol { padding-left: 1.4rem; margin-bottom: .9rem; }
+li { margin-bottom: .35rem; }
+
+/* RESSOURCES — liste sous forme de cartes plutôt que de puces */
+#tab-ressources ul { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: .5rem; }
+#tab-ressources li {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .75rem 1rem; margin-bottom: 0;
+}
+#tab-ressources li a { color: var(--primary2); font-weight: 600; text-decoration: none; }
+#tab-ressources li a:hover { text-decoration: underline; }
+
+/* AIDE — divulgation progressive pas-à-pas */
+details.aide { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+details.aide summary {
+  cursor: pointer; padding: .8rem 1.1rem; font-weight: 600; color: var(--primary);
+  list-style: none; display: flex; align-items: center; gap: .5rem;
+}
+details.aide summary::-webkit-details-marker { display: none; }
+details.aide summary::before { content: "▶"; font-size: .7rem; transition: transform .15s; }
+details.aide[open] summary::before { transform: rotate(90deg); }
+details.aide .aide-body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); margin-top: .2rem; padding-top: 1rem; }
+img { max-width: 100%; height: auto; display: block; margin: 1rem auto; }
+
+/* EXERCICE — un bloc par atelier, avec son aide pas-à-pas attachée juste en dessous */
+.exercice { padding: 1.3rem 0; border-top: 1px solid var(--border); }
+.exercice:first-of-type { border-top: none; padding-top: 0; }
+.exercice h3 { margin: 0 0 .8rem; color: var(--primary2); }
+
+/* CALLOUTS */
+.callout { border-radius: var(--radius); padding: .9rem 1.1rem; margin: 1.2rem 0; border-left: 4px solid; background: var(--surface2); }
+.callout.note   { border-color: var(--primary); }
+.callout.tip    { border-color: var(--success); }
+.callout.warn   { border-color: var(--warning); }
+.callout.danger { border-color: var(--danger); }
+.callout p:last-child { margin-bottom: 0; }
+.callout-title { font-weight: 700; font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+.callout.note   .callout-title { color: var(--primary); }
+.callout.tip    .callout-title { color: var(--success); }
+.callout.warn   .callout-title { color: var(--warning); }
+.callout.danger .callout-title { color: var(--danger); }
+
+/* TABLES */
+.table-wrap { overflow-x: auto; margin: 1rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th { background: var(--surface2); color: var(--primary2); text-align: left; padding: .6rem .9rem; font-weight: 600; border: 1px solid var(--border); }
+td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+tr:hover td { background: var(--surface2); }
+
+/* CODE */
+.code-block { position: relative; margin: 1rem 0; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1rem 1rem 1.2rem; overflow-x: auto; }
+code { font-family: 'Consolas', 'Cascadia Code', monospace; font-size: .88rem; color: var(--primary2); }
+p code, li code, td code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .05rem .35rem; }
+.copy-btn {
+  position: absolute; top: .5rem; right: .5rem;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  padding: .25rem .6rem; font-size: .75rem; border-radius: 5px; cursor: pointer; transition: all .2s;
+}
+.copy-btn:hover { background: var(--primary); color: #0d1117; }
+.copy-btn.copied { background: var(--success); color: #0d1117; }
+
+/* QUIZ */
+.quiz-question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; margin-bottom: 1.2rem; }
+.quiz-question h4 { color: var(--primary2); margin-bottom: .9rem; font-size: .98rem; }
+.quiz-options { display: flex; flex-direction: column; gap: .5rem; }
+.quiz-option {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: .6rem .9rem; cursor: pointer;
+  font-size: .9rem; transition: all .2s; text-align: left; color: var(--text);
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--primary); }
+.quiz-option.correct { border-color: var(--success); color: var(--success); }
+.quiz-option.wrong   { border-color: var(--danger);  color: var(--danger);  }
+.quiz-option:disabled { cursor: default; }
+.quiz-feedback { margin-top: .6rem; font-size: .87rem; color: var(--text-muted); font-style: italic; }
+.quiz-score {
+  background: var(--surface2); border: 1px solid var(--primary);
+  border-radius: var(--radius); padding: 1.5rem; text-align: center; margin-top: 1.5rem; display: none;
+}
+.quiz-score .score-num { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+.quiz-score p { color: var(--text-muted); margin-top: .4rem; }
+.btn-restart { background: var(--primary); color: #0d1117; border: none; padding: .6rem 1.4rem; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 1rem; font-size: .9rem; }
+.btn-restart:hover { background: var(--primary2); }
+
+/* RESPONSIVE — sidebar devient une barre horizontale sous 900px */
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: static; width: 100%; height: auto; max-height: 40vh;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .side-nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: .3rem; }
+  .side-nav button { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; border-radius: 6px 6px 0 0; }
+  .side-nav button.active { border-left-color: transparent; border-bottom-color: var(--primary); }
+  .side-nav-sep { display: none; }
+  .tab-content { padding: 1.5rem 1.2rem 3rem; }
+  .topbar a.chapter-title { font-size: .82rem; }
+}
+</style>
+<link rel="stylesheet" href="assets/course-common.css">
+<script src="assets/course-common.js" defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="badge">Python Avancé : FastAPI + ORM</span>
+  <a class="chapter-title" href="index.html" title="Retour à l'accueil de la formation">
+    <span class="num">03</span><span class="txt">Sécurité, dépendances et déploiement FastAPI</span>
+  </a>
+  <div class="topbar-links">
+    <a href="annexes.html" class="topbar-link">Annexes ↗</a>
+    <a class="topbar-link" href="index.html">Sommaire</a>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Basculer entre thème clair et sombre">
+      <span id="theme-icon">🌙</span> <span id="theme-label">Sombre</span>
+    </button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="objectifs"><span class="objectifs-label">Objectifs</span><ul><li>Utiliser le système de dépendances de FastAPI (Depends) pour factoriser la logique transversale</li><li>Implémenter une authentification par jeton JWT avec OAuth2 Password Flow</li><li>Ajouter du middleware CORS et des tâches de fond à une application FastAPI</li><li>Tester une API FastAPI avec pytest et TestClient</li><li>Conteneuriser et déployer une API FastAPI avec Docker et Gunicorn</li></ul></div>
+    <nav class="side-nav" id="main-nav">
+      <button class="active" onclick="showTab('objectifs-du-chapitre')">Objectifs du chapitre</button>
+  <button class="" onclick="showTab('le-systeme-de-dependances-de-fastapi')">Le système de dépendances de FastAPI</button>
+  <button class="" onclick="showTab('authentification-oauth2-et-jwt')">Authentification OAuth2 et JWT</button>
+  <button class="" onclick="showTab('middleware-et-cors')">Middleware et CORS</button>
+  <button class="" onclick="showTab('taches-de-fond-backgroundtasks')">Tâches de fond — BackgroundTasks</button>
+  <button class="" onclick="showTab('tests-avec-pytest-et-testclient')">Tests avec pytest et TestClient</button>
+  <button class="" onclick="showTab('deploiement-avec-docker')">Déploiement avec Docker</button>
+  <button class="" onclick="showTab('travaux-pratiques')">Travaux pratiques</button>
+  <button class="" onclick="showTab('quiz')">Quiz</button>
+    </nav>
+  </aside>
+  <div class="content">
+    <div id="tab-objectifs-du-chapitre" class="tab-content active">
+<p>À l'issue de ce chapitre, chaque stagiaire est capable de :</p>
+<ul>
+<li>Décrire le principe de l'injection de dépendances et l'implémenter avec <code>Depends()</code></li>
+<li>Implémenter le flux OAuth2 Password avec génération et validation de jetons JWT</li>
+<li>Protéger des routes avec une dépendance d'authentification, en distinguant 401 et 403</li>
+<li>Configurer le middleware CORS pour autoriser les appels cross-origin d'un frontend</li>
+<li>Créer et envoyer des tâches de fond (<code>BackgroundTasks</code>) sans bloquer la réponse</li>
+<li>Écrire des tests unitaires et d'intégration pour une API FastAPI avec <code>pytest</code> et <code>TestClient</code></li>
+<li>Rédiger un <code>Dockerfile</code> pour une application FastAPI et l'exécuter avec Docker Compose</li>
+</ul>
+</div>
+
+<div id="tab-le-systeme-de-dependances-de-fastapi" class="tab-content">
+<h3>Principe de l'injection de dépendances</h3>
+<p>L'injection de dépendances (Dependency Injection, DI) est un patron de conception dans lequel un composant reçoit ses dépendances de l'extérieur plutôt que de les instancier lui-même. FastAPI fournit un système de DI déclaratif : une fonction peut déclarer qu'elle "dépend" d'une autre fonction, et FastAPI s'occupe d'appeler la dépendance avant d'appeler le gestionnaire, en lui passant le résultat.</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+# Dépendance — fonction ordinaire qui retourne quelque chose
+def get_query_params(q: str = &quot;&quot;, page: int = 1, taille: int = 10):
+    return {&quot;q&quot;: q, &quot;page&quot;: page, &quot;taille&quot;: taille}
+
+# Gestionnaire qui consomme la dépendance via Depends()
+@app.get(&quot;/recherche&quot;)
+def recherche(params: dict = Depends(get_query_params)):
+    return {&quot;resultats&quot;: [], &quot;pagination&quot;: params}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>L'avantage est la réutilisabilité : <code>get_query_params</code> peut être injectée dans dix gestionnaires différents sans dupliquer le code de lecture et de validation des paramètres de pagination.</p>
+<h3>Dépendances chaînées</h3>
+<p>Les dépendances peuvent dépendre d'autres dépendances, formant une chaîne que FastAPI résout automatiquement.</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import Depends, HTTPException, Header
+from typing import Optional
+
+# Dépendance de bas niveau — extraire le jeton de l'en-tête
+def get_token(authorization: Optional[str] = Header(default=None)) -&gt; str:
+    if authorization is None or not authorization.startswith(&quot;Bearer &quot;):
+        raise HTTPException(status_code=401, detail=&quot;Jeton manquant&quot;)
+    return authorization.removeprefix(&quot;Bearer &quot;).strip()
+
+# Dépendance de niveau intermédiaire — valider le jeton et retourner l'utilisateur
+def get_current_user(token: str = Depends(get_token)) -&gt; dict:
+    # La validation JWT complète est décrite dans la section suivante
+    user = verifier_jeton(token)  # Lève 401 si invalide
+    return user
+
+# Dépendance de haut niveau — vérifier que l'utilisateur est admin
+def require_admin(user: dict = Depends(get_current_user)) -&gt; dict:
+    if not user.get(&quot;est_admin&quot;):
+        raise HTTPException(status_code=403, detail=&quot;Accès réservé aux administrateurs&quot;)
+    return user
+
+# Utilisation dans un gestionnaire
+@app.delete(&quot;/articles/{id}&quot;)
+def delete_article(article_id: int, admin: dict = Depends(require_admin)):
+    # Ici, admin est garanti admin (sinon 401 ou 403 levé avant)
+    ...
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><img alt="Chaîne de dépendances FastAPI — résolution automatique" src="../08-images/ch03-dependency-chain.svg" /></p>
+<p>Le schéma ci-dessus illustre la chaîne de résolution des dépendances : FastAPI appelle <code>get_token</code> en premier, passe son résultat à <code>get_current_user</code>, passe son résultat à <code>require_admin</code>, puis enfin exécute <code>delete_article</code>. Si l'une des dépendances lève une <code>HTTPException</code>, FastAPI interrompt la chaîne et retourne l'erreur sans jamais atteindre le gestionnaire.</p>
+<h3>Dépendances de classe</h3>
+<p>Pour les dépendances configurables, un pattern courant est d'utiliser une classe avec <code>__call__</code> :</p>
+<div class="code-block"><pre><code class="language-python">class VerifierRole:
+    def __init__(self, role_requis: str):
+        self.role_requis = role_requis
+
+    def __call__(self, user: dict = Depends(get_current_user)) -&gt; dict:
+        if user.get(&quot;role&quot;) != self.role_requis:
+            raise HTTPException(
+                status_code=403,
+                detail=f&quot;Rôle '{self.role_requis}' requis&quot;
+            )
+        return user
+
+# Crée des dépendances paramétrées réutilisables
+require_editor = VerifierRole(role_requis=&quot;editeur&quot;)
+require_admin = VerifierRole(role_requis=&quot;admin&quot;)
+
+@app.post(&quot;/articles/&quot;)
+def create_article(article: ArticleCreation, user: dict = Depends(require_editor)):
+    ...
+
+@app.delete(&quot;/articles/{id}&quot;)
+def delete_article(article_id: int, user: dict = Depends(require_admin)):
+    ...
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+</div>
+
+<div id="tab-authentification-oauth2-et-jwt" class="tab-content">
+<h3>Vocabulaire : authentification et autorisation</h3>
+<p>Deux concepts souvent confondus dans les équipes de développement.</p>
+<p><strong>L'authentification</strong> répond à la question "Qui êtes-vous ?". Elle vérifie l'identité de l'appelant — le plus souvent en lui demandant un couple identifiant/mot de passe, ou en vérifiant un jeton que l'appelant présente.</p>
+<p><strong>L'autorisation</strong> répond à la question "Avez-vous le droit de faire cela ?". Elle vérifie que l'identité confirmée possède les permissions nécessaires pour effectuer l'opération demandée.</p>
+<p>FastAPI fournit les outils pour implémenter les deux, sans imposer de stratégie particulière. La section suivante implémente le flux OAuth2 Password — le plus courant pour les API REST avec authentification par identifiant/mot de passe.</p>
+<h3>JWT — JSON Web Token</h3>
+<p>Un JWT est un jeton signé numériquement qui encode un payload JSON. Il est composé de trois parties séparées par des points :</p>
+<ul>
+<li><strong>Header</strong> : algorithme de signature et type de jeton</li>
+<li><strong>Payload</strong> : données (claims) — identifiant utilisateur, rôle, date d'expiration</li>
+<li><strong>Signature</strong> : hash du header + payload avec une clé secrète</li>
+</ul>
+<div class="code-block"><pre><code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+eyJzdWIiOiJ1c2VyXzQyIiwiZXhwIjoxNzM1MDAwMDAwfQ.
+SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>La propriété clé : le serveur peut <strong>vérifier</strong> un JWT sans l'avoir stocké (stateless). Il suffit de re-calculer la signature avec la clé secrète et de comparer. Si elle correspond et si le jeton n'est pas expiré, le jeton est valide.</p>
+<div class="callout warn"><div class="callout-title">Ne jamais stocker de données sensibles dans le payload JWT</div><p>Le payload d'un JWT est <strong>encodé</strong> en Base64, pas chiffré — n'importe qui peut le décoder sans la clé secrète. Ne jamais y mettre de mot de passe, de clé privée ou de données personnelles sensibles. Le payload sert à transporter des identifiants et des droits, pas des secrets.</p></div>
+<h3>Implémentation complète — OAuth2 Password Flow avec JWT</h3>
+<div class="code-block"><pre><code class="language-bash">pip install &quot;python-jose[cryptography]&quot; &quot;passlib[bcrypt]&quot;
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># auth.py — module d'authentification complet
+from datetime import datetime, timedelta
+from typing import Optional
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+
+# Configuration — en production, charger depuis les variables d'environnement
+SECRET_KEY = &quot;une-cle-secrete-longue-et-aleatoire-a-changer-en-production&quot;
+ALGORITHM = &quot;HS256&quot;
+EXPIRE_MINUTES = 30
+
+# Hachage des mots de passe avec bcrypt
+pwd_context = CryptContext(schemes=[&quot;bcrypt&quot;], deprecated=&quot;auto&quot;)
+
+# Schéma OAuth2 Password — l'URL du endpoint de login
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=&quot;/auth/token&quot;)
+
+
+# --- Modèles ---
+
+class TokenReponse(BaseModel):
+    access_token: str
+    token_type: str
+
+class UtilisateurDansToken(BaseModel):
+    username: str
+    est_admin: bool = False
+
+
+# --- Base de données simulée (remplacée par SQLAlchemy au Chapitre 5) ---
+
+UTILISATEURS_DB = {
+    &quot;alice&quot;: {
+        &quot;username&quot;: &quot;alice&quot;,
+        &quot;hashed_password&quot;: pwd_context.hash(&quot;secret&quot;),
+        &quot;est_admin&quot;: False,
+    },
+    &quot;bob&quot;: {
+        &quot;username&quot;: &quot;bob&quot;,
+        &quot;hashed_password&quot;: pwd_context.hash(&quot;admin123&quot;),
+        &quot;est_admin&quot;: True,
+    },
+}
+
+
+# --- Fonctions utilitaires ---
+
+def verifier_mot_de_passe(plain: str, hashed: str) -&gt; bool:
+    return pwd_context.verify(plain, hashed)
+
+def creer_jeton(data: dict, expire_delta: Optional[timedelta] = None) -&gt; str:
+    payload = data.copy()
+    expire = datetime.utcnow() + (expire_delta or timedelta(minutes=EXPIRE_MINUTES))
+    payload[&quot;exp&quot;] = expire
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def authentifier_utilisateur(username: str, password: str) -&gt; Optional[dict]:
+    user = UTILISATEURS_DB.get(username)
+    if not user or not verifier_mot_de_passe(password, user[&quot;hashed_password&quot;]):
+        return None
+    return user
+
+
+# --- Dépendances d'authentification ---
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -&gt; UtilisateurDansToken:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=&quot;Jeton invalide ou expiré&quot;,
+        headers={&quot;WWW-Authenticate&quot;: &quot;Bearer&quot;},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get(&quot;sub&quot;)
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = UTILISATEURS_DB.get(username)
+    if user is None:
+        raise credentials_exception
+    return UtilisateurDansToken(**user)
+
+
+async def require_admin(
+    current_user: UtilisateurDansToken = Depends(get_current_user),
+) -&gt; UtilisateurDansToken:
+    if not current_user.est_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=&quot;Droits administrateur requis&quot;,
+        )
+    return current_user
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># routers/auth.py — endpoint de login
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from auth import authentifier_utilisateur, creer_jeton, TokenReponse
+
+router = APIRouter(prefix=&quot;/auth&quot;, tags=[&quot;Authentification&quot;])
+
+@router.post(&quot;/token&quot;, response_model=TokenReponse)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authentifier_utilisateur(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=&quot;Identifiant ou mot de passe incorrect&quot;,
+            headers={&quot;WWW-Authenticate&quot;: &quot;Bearer&quot;},
+        )
+    token = creer_jeton({&quot;sub&quot;: user[&quot;username&quot;]})
+    return {&quot;access_token&quot;: token, &quot;token_type&quot;: &quot;bearer&quot;}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># Utilisation dans un routeur protégé
+from auth import get_current_user, require_admin, UtilisateurDansToken
+
+@router.get(&quot;/profil&quot;, response_model=UtilisateurDansToken)
+async def get_profil(user: UtilisateurDansToken = Depends(get_current_user)):
+    &quot;&quot;&quot;Route protégée — nécessite un jeton valide.&quot;&quot;&quot;
+    return user
+
+@router.delete(&quot;/articles/{id}&quot;, status_code=204)
+async def delete_article(
+    article_id: int,
+    admin: UtilisateurDansToken = Depends(require_admin),
+):
+    &quot;&quot;&quot;Route protégée — nécessite un jeton admin.&quot;&quot;&quot;
+    ...
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout danger"><div class="callout-title">Clé secrète en production</div><p><code>SECRET_KEY</code> ne doit <strong>jamais</strong> être codée en dur dans le code source. Utiliser une variable d'environnement ou un gestionnaire de secrets (AWS Secrets Manager, HashiCorp Vault). Générer une clé avec : <code>openssl rand -hex 32</code>. Une clé exposée dans Git compromet tous les jetons émis.</p></div>
+<h3>Tester l'authentification dans Swagger UI</h3>
+<p>FastAPI intègre nativement le bouton <strong>Authorize</strong> dans Swagger UI quand <code>OAuth2PasswordBearer</code> est utilisé. Cliquer sur <strong>Authorize</strong>, saisir le nom d'utilisateur et le mot de passe, valider — Swagger UI injecte automatiquement le jeton <code>Bearer</code> dans toutes les requêtes suivantes.</p>
+</div>
+
+<div id="tab-middleware-et-cors" class="tab-content">
+<h3>Principe du middleware</h3>
+<p>Un middleware est une couche de traitement qui s'interpose entre la réception d'une requête et son envoi au gestionnaire, et/ou entre la réponse du gestionnaire et son envoi au client. C'est le bon endroit pour les préoccupations transversales : logging, mesure du temps de réponse, ajout d'en-têtes, limitation de débit.</p>
+<div class="code-block"><pre><code class="language-python">import time
+from fastapi import FastAPI, Request
+
+app = FastAPI()
+
+@app.middleware(&quot;http&quot;)
+async def ajouter_duree_traitement(request: Request, call_next):
+    debut = time.perf_counter()
+    response = await call_next(request)
+    duree = time.perf_counter() - debut
+    response.headers[&quot;X-Process-Time&quot;] = f&quot;{duree:.4f}s&quot;
+    return response
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><code>call_next</code> est une coroutine qui appelle le prochain middleware (ou le gestionnaire final) dans la chaîne. Le middleware peut modifier la requête avant l'appel et la réponse après.</p>
+<h3>CORS — Cross-Origin Resource Sharing</h3>
+<p>Le CORS est un mécanisme de sécurité des navigateurs qui bloque les requêtes HTTP vers un domaine différent de celui de la page web en cours. Si un frontend React sur <code>localhost:3000</code> appelle une API FastAPI sur <code>localhost:8000</code>, le navigateur bloque la requête — à moins que le serveur ne déclare explicitement autoriser ces origines.</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        &quot;http://localhost:3000&quot;,          # Frontend React en développement
+        &quot;https://www.monapp.fr&quot;,          # Frontend en production
+    ],
+    allow_credentials=True,              # Autorise les cookies cross-origin
+    allow_methods=[&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;],
+    allow_headers=[&quot;*&quot;],                 # Autorise tous les en-têtes
+)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout warn"><div class="callout-title">Ne jamais utiliser <code>allow_origins=["*"]</code> en production avec <code>allow_credentials=True</code></div><p><code>allow_origins=["*"]</code> autorise n'importe quel domaine, ce qui annule la protection CORS. Combiné avec <code>allow_credentials=True</code> (qui autorise les cookies), cela crée une faille de sécurité critique (attaques CSRF). En développement, il est toléré ; en production, toujours lister explicitement les origines autorisées.</p></div>
+</div>
+
+<div id="tab-taches-de-fond-backgroundtasks" class="tab-content">
+<h3>Exécuter une tâche après la réponse</h3>
+<p><code>BackgroundTasks</code> permet d'exécuter une ou plusieurs fonctions après que la réponse a été envoyée au client, dans le même processus. C'est adapté pour des tâches légères qui ne doivent pas bloquer la réponse : envoi d'un email de confirmation, écriture dans un journal, mise à jour d'un cache.</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import APIRouter, BackgroundTasks
+import smtplib
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+def envoyer_email_confirmation(destinataire: str, titre_article: str):
+    &quot;&quot;&quot;Fonction exécutée en arrière-plan après la réponse.&quot;&quot;&quot;
+    # Simulation d'un envoi email (en production : utiliser une bibliothèque async)
+    print(f&quot;Email envoyé à {destinataire} : article '{titre_article}' créé avec succès&quot;)
+
+@router.post(&quot;/&quot;, response_model=ArticleReponse, status_code=201)
+async def create_article(
+    article: ArticleCreation,
+    background_tasks: BackgroundTasks,
+    user: UtilisateurDansToken = Depends(get_current_user),
+):
+    # 1. Créer l'article
+    nouvel_article = {&quot;id&quot;: 1, **article.model_dump()}
+
+    # 2. Planifier la tâche de fond (exécutée APRÈS la réponse)
+    background_tasks.add_task(
+        envoyer_email_confirmation,
+        destinataire=f&quot;{user.username}@exemple.com&quot;,
+        titre_article=article.titre,
+    )
+
+    # 3. Retourner immédiatement la réponse (l'email est envoyé après)
+    return nouvel_article
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout note"><div class="callout-title">BackgroundTasks vs files de messages</div><p><code>BackgroundTasks</code> est adapté aux tâches courtes et non critiques dans le même processus. Pour des tâches longues, distribuées ou rejouer-ables en cas d'échec, utiliser une file de messages (Celery + Redis, RQ, ARQ). La différence est cruciale : si le processus FastAPI redémarre pendant une <code>BackgroundTask</code>, la tâche est perdue.</p></div>
+</div>
+
+<div id="tab-tests-avec-pytest-et-testclient" class="tab-content">
+<h3>Structure des tests</h3>
+<p>FastAPI fournit un <code>TestClient</code> fondé sur <code>httpx</code> qui permet d'appeler l'application directement, sans serveur HTTP réel. Les tests sont des fonctions <code>pytest</code> ordinaires.</p>
+<div class="code-block"><pre><code>api-taches/
+├── main.py
+├── routers/
+├── schemas/
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py     ← Fixtures partagées
+│   └── test_taches.py  ← Tests des routes /taches
+└── requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash">pip install pytest httpx
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Fixtures et TestClient</h3>
+<div class="code-block"><pre><code class="language-python"># tests/conftest.py
+import pytest
+from fastapi.testclient import TestClient
+from main import app
+
+@pytest.fixture
+def client():
+    &quot;&quot;&quot;TestClient réinitialisé pour chaque test.&quot;&quot;&quot;
+    with TestClient(app) as c:
+        yield c
+
+@pytest.fixture
+def token_valide(client):
+    &quot;&quot;&quot;Obtient un jeton JWT valide pour les tests des routes protégées.&quot;&quot;&quot;
+    response = client.post(
+        &quot;/auth/token&quot;,
+        data={&quot;username&quot;: &quot;alice&quot;, &quot;password&quot;: &quot;secret&quot;}
+    )
+    return response.json()[&quot;access_token&quot;]
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># tests/test_taches.py
+def test_creer_tache(client):
+    response = client.post(
+        &quot;/taches/&quot;,
+        json={&quot;titre&quot;: &quot;Apprendre FastAPI&quot;, &quot;priorite&quot;: 2}
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data[&quot;titre&quot;] == &quot;Apprendre FastAPI&quot;
+    assert data[&quot;priorite&quot;] == 2
+    assert data[&quot;terminee&quot;] is False
+    assert &quot;id&quot; in data
+    assert &quot;date_creation&quot; in data
+
+
+def test_creer_tache_titre_trop_court(client):
+    response = client.post(&quot;/taches/&quot;, json={&quot;titre&quot;: &quot;AB&quot;})
+    assert response.status_code == 422
+
+
+def test_get_tache_inexistante(client):
+    response = client.get(&quot;/taches/9999&quot;)
+    assert response.status_code == 404
+
+
+def test_lister_taches(client):
+    # Créer deux tâches
+    client.post(&quot;/taches/&quot;, json={&quot;titre&quot;: &quot;Tâche un&quot;, &quot;terminee&quot;: False})
+    client.post(&quot;/taches/&quot;, json={&quot;titre&quot;: &quot;Tâche deux&quot;, &quot;terminee&quot;: True})
+
+    # Lister toutes
+    response = client.get(&quot;/taches/&quot;)
+    assert response.status_code == 200
+    assert len(response.json()) &gt;= 2
+
+    # Filtrer les non-terminées
+    response = client.get(&quot;/taches/?terminee=false&quot;)
+    assert all(t[&quot;terminee&quot;] is False for t in response.json())
+
+
+def test_route_protegee_sans_jeton(client):
+    response = client.get(&quot;/profil&quot;)
+    assert response.status_code == 401
+
+
+def test_route_protegee_avec_jeton(client, token_valide):
+    response = client.get(
+        &quot;/profil&quot;,
+        headers={&quot;Authorization&quot;: f&quot;Bearer {token_valide}&quot;}
+    )
+    assert response.status_code == 200
+    assert response.json()[&quot;username&quot;] == &quot;alice&quot;
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash"># Lancer les tests
+pytest tests/ -v
+
+# Avec rapport de couverture
+pip install pytest-cov
+pytest tests/ --cov=. --cov-report=term-missing
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><img alt="Pipeline de test FastAPI — du TestClient jusqu'à la réponse" src="../08-images/ch03-test-pipeline.svg" /></p>
+<p>Le schéma ci-dessus illustre le flux de test : <code>TestClient</code> appelle directement l'application FastAPI en mémoire (sans port TCP), les dépendances sont résolues normalement, la réponse est retournée synchroniquement à <code>pytest</code>. Des fixtures peuvent remplacer certaines dépendances par des mocks via <code>app.dependency_overrides</code>.</p>
+<h3>Remplacer des dépendances dans les tests</h3>
+<div class="code-block"><pre><code class="language-python"># Remplacer la dépendance d'authentification par un utilisateur de test
+from auth import get_current_user, UtilisateurDansToken
+
+def override_get_current_user():
+    return UtilisateurDansToken(username=&quot;alice_test&quot;, est_admin=False)
+
+app.dependency_overrides[get_current_user] = override_get_current_user
+
+# Après les tests, nettoyer les overrides
+app.dependency_overrides.clear()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+</div>
+
+<div id="tab-deploiement-avec-docker" class="tab-content">
+<h3>Dockerfile pour FastAPI</h3>
+<div class="code-block"><pre><code class="language-dockerfile"># Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copier et installer les dépendances en premier (couche mise en cache)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier le code source
+COPY . .
+
+# Exposer le port de l'application
+EXPOSE 8000
+
+# Démarrer avec Gunicorn (multi-processus) + Uvicorn (worker ASGI)
+CMD [&quot;gunicorn&quot;, &quot;main:app&quot;, \
+     &quot;--workers&quot;, &quot;4&quot;, \
+     &quot;--worker-class&quot;, &quot;uvicorn.workers.UvicornWorker&quot;, \
+     &quot;--bind&quot;, &quot;0.0.0.0:8000&quot;]
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash">pip install gunicorn
+pip freeze &gt; requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout note"><div class="callout-title">Gunicorn + Uvicorn en production</div><p>Uvicorn seul est monoprocessus — un processus signifie qu'un seul CPU est utilisé. En production, Gunicorn (gestionnaire de processus) lance plusieurs workers Uvicorn, utilisant tous les cœurs disponibles. La règle empirique : <code>2 * nombre_de_CPU + 1</code> workers.</p></div>
+<h3>Docker Compose — stack complète</h3>
+<div class="code-block"><pre><code class="language-yaml"># docker-compose.yml
+services:
+  api:
+    build: .
+    ports:
+      - &quot;8000:8000&quot;
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      - .:/app          # Rechargement automatique en développement
+    restart: unless-stopped
+
+  # Base de données PostgreSQL (utilisée au Chapitre 5)
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: api_db
+      POSTGRES_USER: api_user
+      POSTGRES_PASSWORD: api_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - &quot;5432:5432&quot;
+
+volumes:
+  postgres_data:
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash"># Construire et lancer
+docker compose up --build
+
+# En arrière-plan
+docker compose up -d
+
+# Voir les logs
+docker compose logs -f api
+
+# Arrêter
+docker compose down
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Variables d'environnement et configuration</h3>
+<p>Pour les paramètres qui changent entre les environnements (développement, staging, production), utiliser <code>pydantic-settings</code> pour les charger depuis des variables d'environnement ou un fichier <code>.env</code>.</p>
+<div class="code-block"><pre><code class="language-python"># config.py
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    app_name: str = &quot;API Catalogue&quot;
+    secret_key: str           # Obligatoire — pas de valeur par défaut
+    algorithm: str = &quot;HS256&quot;
+    expire_minutes: int = 30
+    database_url: str = &quot;sqlite:///./app.db&quot;
+
+    class Config:
+        env_file = &quot;.env&quot;      # Chargé automatiquement si présent
+
+settings = Settings()         # Lit depuis l'environnement ou .env
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash"># .env (ne pas versionner — ajouter à .gitignore)
+SECRET_KEY=une-cle-secrete-longue-et-aleatoire
+DATABASE_URL=postgresql://api_user:api_password@db:5432/api_db
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># Utilisation dans auth.py
+from config import settings
+
+token = jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout danger"><div class="callout-title">Ne jamais versionner <code>.env</code></div><p>Le fichier <code>.env</code> contient des secrets (clés, mots de passe, tokens). Il ne doit <strong>jamais</strong> apparaître dans Git. Ajouter <code>.env</code> à <code>.gitignore</code>. Partager les noms des variables via un fichier <code>.env.example</code> avec des valeurs fictives — jamais les vraies valeurs.</p></div>
+</div>
+
+<div id="tab-travaux-pratiques" class="tab-content">
+<div class="exercice">
+<h3>Exercice 1 — Sécuriser une API avec JWT</h3>
+<p>Reprenez l'API de tâches du Chapitre 2 et ajoutez une couche d'authentification JWT complète.</p>
+<p><strong>Travail à réaliser :</strong></p>
+<ol>
+<li>Installez <code>python-jose[cryptography]</code>, <code>passlib[bcrypt]</code> et <code>pydantic-settings</code></li>
+<li>Créez un module <code>auth.py</code> avec :</li>
+<li>Deux utilisateurs en mémoire (<code>alice</code>/<code>secret</code> non-admin, <code>bob</code>/<code>admin123</code> admin)</li>
+<li>Un endpoint <code>POST /auth/token</code> retournant un JWT</li>
+<li>Une dépendance <code>get_current_user</code> qui valide le JWT</li>
+<li>Une dépendance <code>require_admin</code> qui vérifie le rôle admin</li>
+<li>Protégez les routes :</li>
+<li><code>GET /taches</code> et <code>GET /taches/{id}</code> — utilisateur authentifié uniquement</li>
+<li><code>DELETE /taches/{id}</code> — administrateur uniquement</li>
+<li><code>POST /taches</code> et <code>PATCH /taches/{id}</code> — utilisateur authentifié</li>
+</ol>
+<p><strong>Critères de validation :</strong></p>
+<ul>
+<li><code>POST /auth/token</code> avec les bons credentials retourne un JWT</li>
+<li><code>GET /taches</code> sans jeton retourne <code>401</code></li>
+<li><code>GET /taches</code> avec le jeton d'alice retourne <code>200</code></li>
+<li><code>DELETE /taches/1</code> avec le jeton d'alice retourne <code>403</code></li>
+<li><code>DELETE /taches/1</code> avec le jeton de bob retourne <code>204</code></li>
+<li>Swagger UI affiche le bouton <strong>Authorize</strong> et permet de s'authentifier</li>
+</ul>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p><strong>Étape 1 — Installer les dépendances</strong></p>
+<div class="code-block"><pre><code class="language-bash">pip install &quot;python-jose[cryptography]&quot; &quot;passlib[bcrypt]&quot; &quot;pydantic-settings&quot;
+pip freeze &gt; requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 2 — Créer <code>auth.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python"># auth.py
+from datetime import datetime, timedelta
+from typing import Optional
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+
+SECRET_KEY = &quot;formation-dawan-clé-de-développement-seulement&quot;
+ALGORITHM = &quot;HS256&quot;
+EXPIRE_MINUTES = 30
+
+pwd_context = CryptContext(schemes=[&quot;bcrypt&quot;], deprecated=&quot;auto&quot;)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=&quot;/auth/token&quot;)
+
+class TokenReponse(BaseModel):
+    access_token: str
+    token_type: str
+
+class UtilisateurDansToken(BaseModel):
+    username: str
+    est_admin: bool = False
+
+UTILISATEURS_DB = {
+    &quot;alice&quot;: {&quot;username&quot;: &quot;alice&quot;, &quot;hashed_password&quot;: pwd_context.hash(&quot;secret&quot;), &quot;est_admin&quot;: False},
+    &quot;bob&quot;:   {&quot;username&quot;: &quot;bob&quot;,   &quot;hashed_password&quot;: pwd_context.hash(&quot;admin123&quot;), &quot;est_admin&quot;: True},
+}
+
+def authentifier(username: str, password: str) -&gt; Optional[dict]:
+    user = UTILISATEURS_DB.get(username)
+    if not user or not pwd_context.verify(password, user[&quot;hashed_password&quot;]):
+        return None
+    return user
+
+def creer_jeton(data: dict) -&gt; str:
+    payload = data.copy()
+    payload[&quot;exp&quot;] = datetime.utcnow() + timedelta(minutes=EXPIRE_MINUTES)
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -&gt; UtilisateurDansToken:
+    exc = HTTPException(status_code=401, detail=&quot;Jeton invalide&quot;,
+                        headers={&quot;WWW-Authenticate&quot;: &quot;Bearer&quot;})
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get(&quot;sub&quot;)
+        if not username:
+            raise exc
+    except JWTError:
+        raise exc
+    user = UTILISATEURS_DB.get(username)
+    if not user:
+        raise exc
+    return UtilisateurDansToken(**user)
+
+async def require_admin(user: UtilisateurDansToken = Depends(get_current_user)) -&gt; UtilisateurDansToken:
+    if not user.est_admin:
+        raise HTTPException(status_code=403, detail=&quot;Droits admin requis&quot;)
+    return user
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 3 — Ajouter le routeur d'authentification</strong></p>
+<p>Créez <code>routers/auth.py</code> :</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from auth import authentifier, creer_jeton, TokenReponse
+
+router = APIRouter(prefix=&quot;/auth&quot;, tags=[&quot;Authentification&quot;])
+
+@router.post(&quot;/token&quot;, response_model=TokenReponse)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authentifier(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail=&quot;Identifiants incorrects&quot;,
+                            headers={&quot;WWW-Authenticate&quot;: &quot;Bearer&quot;})
+    return {&quot;access_token&quot;: creer_jeton({&quot;sub&quot;: user[&quot;username&quot;]}), &quot;token_type&quot;: &quot;bearer&quot;}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 4 — Protéger les routes de tâches</strong></p>
+<p>Dans <code>routers/taches.py</code>, importez les dépendances et ajoutez-les :</p>
+<div class="code-block"><pre><code class="language-python">from auth import get_current_user, require_admin, UtilisateurDansToken
+
+@router.get(&quot;/&quot;, response_model=List[TacheReponse])
+def list_taches(..., user: UtilisateurDansToken = Depends(get_current_user)):
+    ...
+
+@router.post(&quot;/&quot;, response_model=TacheReponse, status_code=201)
+def create_tache(tache: TacheCreation, user: UtilisateurDansToken = Depends(get_current_user)):
+    ...
+
+@router.delete(&quot;/{tache_id}&quot;, status_code=204)
+def delete_tache(tache_id: int, admin: UtilisateurDansToken = Depends(require_admin)):
+    ...
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 5 — Inclure le routeur dans <code>main.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python">from routers import auth, taches
+app.include_router(auth.router)
+app.include_router(taches.router)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 6 — Tester dans Swagger UI</strong></p>
+<ol>
+<li><code>fastapi dev main.py</code> → ouvrir <code>/docs</code></li>
+<li>Cliquer <strong>Authorize</strong> → saisir <code>alice</code> / <code>secret</code> → <code>Authorize</code></li>
+<li>Tester <code>GET /taches/</code> → <code>200</code></li>
+<li>Tester <code>DELETE /taches/1</code> → <code>403</code> (alice n'est pas admin)</li>
+<li>Se déconnecter → <strong>Authorize</strong> avec <code>bob</code> / <code>admin123</code></li>
+<li>Tester <code>DELETE /taches/1</code> → <code>204</code></li>
+</ol>
+<hr /></div></details>
+</div>
+<div class="exercice">
+<h3>Exercice 2 — Tests pytest de l&#x27;API sécurisée</h3>
+<p>Écrivez une suite de tests <code>pytest</code> couvrant les routes sécurisées.</p>
+<p><strong>Tests à écrire (au minimum 6) :</strong></p>
+<ol>
+<li>Création réussie d'une tâche avec jeton valide (<code>201</code>)</li>
+<li>Création refusée sans jeton (<code>401</code>)</li>
+<li>Suppression refusée par un non-admin (<code>403</code>)</li>
+<li>Suppression réussie par un admin (<code>204</code>)</li>
+<li>Route inexistante retourne <code>404</code> avec le bon format</li>
+<li>Validation Pydantic retourne <code>422</code> avec un titre trop court</li>
+</ol>
+<p><strong>Critères de validation :</strong></p>
+<ul>
+<li>Tous les tests passent avec <code>pytest tests/ -v</code></li>
+<li>Les routes protégées utilisent <code>dependency_overrides</code> pour injecter un utilisateur de test</li>
+<li>Le coverage de <code>routers/taches.py</code> atteint au moins 80 % (mesuré avec <code>pytest --cov</code>)</li>
+</ul>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p><strong>Étape 1 — Installer pytest et httpx</strong></p>
+<div class="code-block"><pre><code class="language-bash">pip install pytest httpx pytest-cov
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 2 — Créer <code>tests/conftest.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python">import pytest
+from fastapi.testclient import TestClient
+from main import app
+from auth import get_current_user, UtilisateurDansToken
+
+@pytest.fixture
+def client():
+    with TestClient(app) as c:
+        yield c
+
+@pytest.fixture
+def token_alice(client):
+    r = client.post(&quot;/auth/token&quot;, data={&quot;username&quot;: &quot;alice&quot;, &quot;password&quot;: &quot;secret&quot;})
+    return r.json()[&quot;access_token&quot;]
+
+@pytest.fixture
+def token_bob(client):
+    r = client.post(&quot;/auth/token&quot;, data={&quot;username&quot;: &quot;bob&quot;, &quot;password&quot;: &quot;admin123&quot;})
+    return r.json()[&quot;access_token&quot;]
+
+@pytest.fixture
+def alice_headers(token_alice):
+    return {&quot;Authorization&quot;: f&quot;Bearer {token_alice}&quot;}
+
+@pytest.fixture
+def bob_headers(token_bob):
+    return {&quot;Authorization&quot;: f&quot;Bearer {token_bob}&quot;}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 3 — Créer <code>tests/test_taches.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python">def test_creation_avec_jeton(client, alice_headers):
+    r = client.post(&quot;/taches/&quot;, json={&quot;titre&quot;: &quot;Tâche test&quot;}, headers=alice_headers)
+    assert r.status_code == 201
+    assert r.json()[&quot;titre&quot;] == &quot;Tâche test&quot;
+
+def test_creation_sans_jeton(client):
+    r = client.post(&quot;/taches/&quot;, json={&quot;titre&quot;: &quot;Tâche test&quot;})
+    assert r.status_code == 401
+
+def test_suppression_non_admin(client, alice_headers):
+    # Créer d'abord une tâche
+    r = client.post(&quot;/taches/&quot;, json={&quot;titre&quot;: &quot;À supprimer&quot;}, headers=alice_headers)
+    tache_id = r.json()[&quot;id&quot;]
+    # Tenter de supprimer en tant que non-admin
+    r = client.delete(f&quot;/taches/{tache_id}&quot;, headers=alice_headers)
+    assert r.status_code == 403
+
+def test_suppression_admin(client, alice_headers, bob_headers):
+    r = client.post(&quot;/taches/&quot;, json={&quot;titre&quot;: &quot;À supprimer admin&quot;}, headers=alice_headers)
+    tache_id = r.json()[&quot;id&quot;]
+    r = client.delete(f&quot;/taches/{tache_id}&quot;, headers=bob_headers)
+    assert r.status_code == 204
+
+def test_tache_inexistante(client, alice_headers):
+    r = client.get(&quot;/taches/99999&quot;, headers=alice_headers)
+    assert r.status_code == 404
+
+def test_validation_titre_trop_court(client, alice_headers):
+    r = client.post(&quot;/taches/&quot;, json={&quot;titre&quot;: &quot;AB&quot;}, headers=alice_headers)
+    assert r.status_code == 422
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 4 — Lancer les tests</strong></p>
+<div class="code-block"><pre><code class="language-bash"># Tests simples
+pytest tests/ -v
+
+# Avec couverture
+pytest tests/ --cov=routers --cov-report=term-missing
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Résultat attendu : 6 tests PASSED, couverture ≥ 80 % sur <code>routers/taches.py</code>.</p></div></details>
+</div>
+</div>
+
+<div id="tab-quiz" class="tab-content">
+<div id="quiz-container">
+<div class="quiz-question" id="q1">
+  <h4>Question 1 — Dans FastAPI, que fait <code>Depends(get_token)</code> passé comme valeur par défaut d'un paramètre ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(1,'a')">A) Il documente que le paramètre vient de l'en-tête HTTP <code>Token</code></button>
+    <button class="quiz-option" onclick="answer(1,'b')">B) Il demande à FastAPI d'appeler <code>get_token()</code> avant le gestionnaire et d'injecter son résultat</button>
+    <button class="quiz-option" onclick="answer(1,'c')">C) Il rend le paramètre optionnel dans Swagger UI</button>
+    <button class="quiz-option" onclick="answer(1,'d')">D) Il désactive la validation Pydantic pour ce paramètre</button>
+  </div>
+  <div class="quiz-feedback" id="fb1"></div>
+</div>
+<div class="quiz-question" id="q2">
+  <h4>Question 2 — Quelle partie d'un JWT peut être lue par n'importe qui sans la clé secrète ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(2,'a')">A) Aucune — tout le JWT est chiffré avec la clé secrète</button>
+    <button class="quiz-option" onclick="answer(2,'b')">B) Uniquement le header</button>
+    <button class="quiz-option" onclick="answer(2,'c')">C) Le header et le payload — ils sont seulement encodés en Base64</button>
+    <button class="quiz-option" onclick="answer(2,'d')">D) Uniquement la signature</button>
+  </div>
+  <div class="quiz-feedback" id="fb2"></div>
+</div>
+<div class="quiz-question" id="q3">
+  <h4>Question 3 — Quelle commande génère une clé secrète aléatoire sécurisée pour <code>SECRET_KEY</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(3,'a')">A) <code>python -c "import uuid; print(uuid.uuid4())"</code></button>
+    <button class="quiz-option" onclick="answer(3,'b')">B) <code>openssl rand -hex 32</code></button>
+    <button class="quiz-option" onclick="answer(3,'c')">C) <code>fastapi generate-key</code></button>
+    <button class="quiz-option" onclick="answer(3,'d')">D) <code>python -m secrets</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb3"></div>
+</div>
+<div class="quiz-question" id="q4">
+  <h4>Question 4 — Quel middleware FastAPI permet d'autoriser les appels cross-origin depuis un frontend sur un domaine différent ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(4,'a')">A) <code>AuthMiddleware</code></button>
+    <button class="quiz-option" onclick="answer(4,'b')">B) <code>CORSMiddleware</code></button>
+    <button class="quiz-option" onclick="answer(4,'c')">C) <code>ProxyMiddleware</code></button>
+    <button class="quiz-option" onclick="answer(4,'d')">D) <code>SecurityMiddleware</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb4"></div>
+</div>
+<div class="quiz-question" id="q5">
+  <h4>Question 5 — Quand doit-on utiliser <code>BackgroundTasks</code> au lieu d'une file de messages (Celery) ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(5,'a')">A) Toujours — BackgroundTasks est plus performant que Celery</button>
+    <button class="quiz-option" onclick="answer(5,'b')">B) Pour des tâches courtes, non critiques, exécutées dans le même processus FastAPI</button>
+    <button class="quiz-option" onclick="answer(5,'c')">C) Pour des tâches qui doivent être rejouées en cas d'échec du serveur</button>
+    <button class="quiz-option" onclick="answer(5,'d')">D) Uniquement pour l'envoi de métriques</button>
+  </div>
+  <div class="quiz-feedback" id="fb5"></div>
+</div>
+<div class="quiz-question" id="q6">
+  <h4>Question 6 — Dans <code>pytest</code>, quel objet FastAPI permet d'appeler l'application directement en mémoire, sans serveur HTTP ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(6,'a')">A) <code>FastAPIClient</code></button>
+    <button class="quiz-option" onclick="answer(6,'b')">B) <code>RequestsMock</code></button>
+    <button class="quiz-option" onclick="answer(6,'c')">C) <code>TestClient</code></button>
+    <button class="quiz-option" onclick="answer(6,'d')">D) <code>MockApp</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb6"></div>
+</div>
+<div class="quiz-question" id="q7">
+  <h4>Question 7 — Comment remplacer une dépendance FastAPI par un mock dans les tests ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(7,'a')">A) <code>app.mock_dependency(dep, mock_func)</code></button>
+    <button class="quiz-option" onclick="answer(7,'b')">B) <code>app.dependency_overrides[dep] = mock_func</code></button>
+    <button class="quiz-option" onclick="answer(7,'c')">C) <code>pytest.mock.patch(dep, mock_func)</code></button>
+    <button class="quiz-option" onclick="answer(7,'d')">D) <code>app.replace_depends(dep, mock_func)</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb7"></div>
+</div>
+<div class="quiz-question" id="q8">
+  <h4>Question 8 — Pourquoi utiliser Gunicorn avec Uvicorn en production plutôt qu'Uvicorn seul ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(8,'a')">A) Gunicorn gère le HTTPS, Uvicorn non</button>
+    <button class="quiz-option" onclick="answer(8,'b')">B) Uvicorn seul est limité à HTTP/1.1, Gunicorn ajoute HTTP/2</button>
+    <button class="quiz-option" onclick="answer(8,'c')">C) Uvicorn seul est monoprocessus ; Gunicorn lance plusieurs workers Uvicorn pour utiliser tous les CPU</button>
+    <button class="quiz-option" onclick="answer(8,'d')">D) Gunicorn est requis pour que les middlewares FastAPI fonctionnent</button>
+  </div>
+  <div class="quiz-feedback" id="fb8"></div>
+</div>
+<div class="quiz-question" id="q9">
+  <h4>Question 9 — Quelle est la différence entre <code>401 Unauthorized</code> et <code>403 Forbidden</code> dans le contexte de l'authentification JWT ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(9,'a')">A) <code>401</code> : jeton absent ou invalide (non authentifié) ; <code>403</code> : jeton valide mais permissions insuffisantes</button>
+    <button class="quiz-option" onclick="answer(9,'b')">B) <code>401</code> : mot de passe incorrect ; <code>403</code> : compte suspendu</button>
+    <button class="quiz-option" onclick="answer(9,'c')">C) <code>401</code> : erreur côté serveur ; <code>403</code> : erreur côté client</button>
+    <button class="quiz-option" onclick="answer(9,'d')">D) Ils sont équivalents dans FastAPI</button>
+  </div>
+  <div class="quiz-feedback" id="fb9"></div>
+</div>
+<div class="quiz-question" id="q10">
+  <h4>Question 10 — Quel outil de FastAPI permet de charger la configuration (<code>SECRET_KEY</code>, <code>DATABASE_URL</code>) depuis des variables d'environnement ou un fichier <code>.env</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(10,'a')">A) <code>fastapi.Config</code></button>
+    <button class="quiz-option" onclick="answer(10,'b')">B) <code>os.environ</code> directement dans le code</button>
+    <button class="quiz-option" onclick="answer(10,'c')">C) <code>pydantic_settings.BaseSettings</code></button>
+    <button class="quiz-option" onclick="answer(10,'d')">D) <code>dotenv.load_env()</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb10"></div>
+</div>
+</div>
+<div class="quiz-score" id="quiz-score">
+  <div class="score-num" id="score-display">0 / 10</div>
+  <p id="score-msg"></p>
+  <button class="btn-restart" onclick="restartQuiz()">Recommencer</button>
+</div>
+</div>
+  </div>
+</div>
+
+<script>
+// ─── THEME ──────────────────────────────────────────────────────────────────
+(function () {
+  const root = document.documentElement;
+  const stored = localStorage.getItem('dawan-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  updateToggleLabel();
+})();
+
+function updateToggleLabel() {
+  const current = document.documentElement.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.getElementById('theme-icon').textContent = current === 'dark' ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = current === 'dark' ? 'Sombre' : 'Clair';
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('dawan-theme', next);
+  updateToggleLabel();
+}
+
+// ─── TABS ───────────────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.side-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  document.querySelector('.content').scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// ─── COPY CODE ──────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = 'Copié !'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── QUIZ ────────────────────────────────────────────────────────────────────
+const answers = { 1:'b', 2:'c', 3:'b', 4:'b', 5:'b', 6:'c', 7:'b', 8:'c', 9:'a', 10:'c' };
+const feedbacks = {
+  1: { b: "Exact ! <code>Depends()</code> est le mécanisme d'injection de dépendances de FastAPI. La fonction dépendance est appelée automatiquement, son résultat est injecté dans le paramètre (section \"Principe de l'injection de dépendances\").", wrong: "Non. La bonne réponse est B) Il demande à FastAPI d'appeler <code>get_token()</code> avant le gestionnaire et d'injecter son résultat — <code>Depends()</code> est le mécanisme d'injection de dépendances de FastAPI. La fonction dépendance est appelée automatiquement, son résultat est injecté dans le paramètre (section \"Principe de l'injection de dépendances\")." },
+  2: { c: "Exact ! Un JWT n'est pas chiffré, seulement signé. Le header et le payload sont encodés en Base64 URL et lisibles par n'importe qui. Seule la signature nécessite la clé secrète pour être vérifiée (section \"JWT — JSON Web Token\").", wrong: "Non. La bonne réponse est C) Le header et le payload — ils sont seulement encodés en Base64 — Un JWT n'est pas chiffré, seulement signé. Le header et le payload sont encodés en Base64 URL et lisibles par n'importe qui. Seule la signature nécessite la clé secrète pour être vérifiée (section \"JWT — JSON Web Token\")." },
+  3: { b: "Exact ! Génère 32 octets aléatoires cryptographiquement forts en hexadécimal. Python <code>uuid4</code> est aléatoire mais pas conçu pour les secrets cryptographiques (section \"Implémentation complète — OAuth2 Password Flow\").", wrong: "Non. La bonne réponse est B) <code>openssl rand -hex 32</code> — Génère 32 octets aléatoires cryptographiquement forts en hexadécimal. Python <code>uuid4</code> est aléatoire mais pas conçu pour les secrets cryptographiques (section \"Implémentation complète — OAuth2 Password Flow\")." },
+  4: { b: "Exact ! <code>from fastapi.middleware.cors import CORSMiddleware</code> est le middleware fourni par FastAPI/Starlette pour gérer les en-têtes CORS (section \"CORS — Cross-Origin Resource Sharing\").", wrong: "Non. La bonne réponse est B) <code>CORSMiddleware</code> — <code>from fastapi.middleware.cors import CORSMiddleware</code> est le middleware fourni par FastAPI/Starlette pour gérer les en-têtes CORS (section \"CORS — Cross-Origin Resource Sharing\")." },
+  5: { b: "Exact ! <code>BackgroundTasks</code> est léger et simple mais les tâches sont perdues si le processus redémarre. Pour des tâches critiques ou longues, utiliser Celery (section \"Tâches de fond — BackgroundTasks\").", wrong: "Non. La bonne réponse est B) Pour des tâches courtes, non critiques, exécutées dans le même processus FastAPI — <code>BackgroundTasks</code> est léger et simple mais les tâches sont perdues si le processus redémarre. Pour des tâches critiques ou longues, utiliser Celery (section \"Tâches de fond — BackgroundTasks\")." },
+  6: { c: "Exact ! <code>from fastapi.testclient import TestClient</code> est le client de test fourni par FastAPI, fondé sur <code>httpx</code>, qui appelle l'application directement en mémoire (section \"Tests avec pytest et TestClient\").", wrong: "Non. La bonne réponse est C) <code>TestClient</code> — <code>from fastapi.testclient import TestClient</code> est le client de test fourni par FastAPI, fondé sur <code>httpx</code>, qui appelle l'application directement en mémoire (section \"Tests avec pytest et TestClient\")." },
+  7: { b: "Exact ! <code>dependency_overrides</code> est un dictionnaire sur l'instance <code>FastAPI</code> qui permet de substituer n'importe quelle dépendance par une version de test (section \"Remplacer des dépendances dans les tests\").", wrong: "Non. La bonne réponse est B) <code>app.dependency_overrides[dep] = mock_func</code> — <code>dependency_overrides</code> est un dictionnaire sur l'instance <code>FastAPI</code> qui permet de substituer n'importe quelle dépendance par une version de test (section \"Remplacer des dépendances dans les tests\")." },
+  8: { c: "Exact ! Uvicorn est un excellent serveur ASGI mais monoprocessus. Gunicorn le lance en plusieurs instances parallèles (section \"Dockerfile pour FastAPI\").", wrong: "Non. La bonne réponse est C) Uvicorn seul est monoprocessus ; Gunicorn lance plusieurs workers Uvicorn pour utiliser tous les CPU — Uvicorn est un excellent serveur ASGI mais monoprocessus. Gunicorn le lance en plusieurs instances parallèles (section \"Dockerfile pour FastAPI\")." },
+  9: { a: "Exact ! <code>401</code> signifie \"je ne sais pas qui vous êtes\" ; <code>403</code> signifie \"je sais qui vous êtes mais vous n'avez pas le droit\" (section \"Authentification OAuth2 et JWT\").", wrong: "Non. La bonne réponse est A) <code>401</code> : jeton absent ou invalide (non authentifié) ; <code>403</code> : jeton valide mais permissions insuffisantes — <code>401</code> signifie \"je ne sais pas qui vous êtes\" ; <code>403</code> signifie \"je sais qui vous êtes mais vous n'avez pas le droit\" (section \"Authentification OAuth2 et JWT\")." },
+  10: { c: "Exact ! <code>pydantic-settings</code> (package séparé depuis Pydantic v2) fournit <code>BaseSettings</code> qui charge les champs depuis les variables d'environnement ou un fichier <code>.env</code> (section \"Variables d'environnement et configuration\").", wrong: "Non. La bonne réponse est C) <code>pydantic_settings.BaseSettings</code> — <code>pydantic-settings</code> (package séparé depuis Pydantic v2) fournit <code>BaseSettings</code> qui charge les champs depuis les variables d'environnement ou un fichier <code>.env</code> (section \"Variables d'environnement et configuration\")." }
+};
+const QUIZ_TOTAL = 10;
+let score = 0;
+let answered = {};
+
+function answer(qNum, choice) {
+  if (answered[qNum]) return;
+  answered[qNum] = true;
+  score += (choice === answers[qNum]) ? 1 : 0;
+  const qEl = document.getElementById('q' + qNum);
+  qEl.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = true;
+    const ltr = btn.textContent.trim()[0].toLowerCase();
+    if (ltr === answers[qNum]) btn.classList.add('correct');
+    else if (ltr === choice) btn.classList.add('wrong');
+  });
+  const fb = feedbacks[qNum];
+  document.getElementById('fb' + qNum).textContent = (choice === answers[qNum]) ? fb[answers[qNum]] : fb.wrong;
+  if (Object.keys(answered).length === QUIZ_TOTAL) showScore();
+}
+
+function showScore() {
+  const el = document.getElementById('quiz-score');
+  el.style.display = 'block';
+  document.getElementById('score-display').textContent = score + ' / ' + QUIZ_TOTAL;
+  const ratio = score / QUIZ_TOTAL;
+  let msg;
+  if (ratio === 1) msg = 'Parfait ! Toutes les réponses sont correctes.';
+  else if (ratio >= .8) msg = 'Très bien ! Vous maîtrisez l\'essentiel.';
+  else if (ratio >= .6) msg = 'Pas mal ! Relisez les points manqués.';
+  else if (ratio >= .4) msg = 'Quelques notions à revoir.';
+  else msg = 'Revoyez le cours avant de continuer.';
+  document.getElementById('score-msg').textContent = msg;
+}
+
+function restartQuiz() {
+  score = 0; answered = {};
+  document.getElementById('quiz-score').style.display = 'none';
+  document.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('correct','wrong');
+  });
+  document.querySelectorAll('.quiz-feedback').forEach(fb => fb.textContent = '');
+}
+</script>
+</body>
+</html>

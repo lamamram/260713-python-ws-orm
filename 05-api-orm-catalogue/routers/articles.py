@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Path, Query, HTTPException, Depends
+from fastapi import APIRouter, Path, Query, HTTPException, Depends, BackgroundTasks
 from datetime import datetime
 from exceptions import RessourceNonTrouveException
 from dependencies import get_query_params, GetQueryParams
@@ -13,6 +13,14 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from database import get_db, Article, Utilisateur
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
+
+## hooks
+def envoyer_email_confirmation(destinataire: str, titre_article: str):
+    """Fonction exécutée en arrière-plan après la réponse."""
+    # Simulation d'un envoi email (en production : utiliser une bibliothèque async)
+    print(f"Email envoyé à {destinataire} : article '{titre_article}' créé avec succès")
+
+## routes
 
 @router.get("/count_publie_by_user", response_model=List[ArticleCountPublieByUser])
 def count_articles_publie(
@@ -113,6 +121,7 @@ def list_articles(
 @router.post("/", status_code=201, response_model=ArticleResponse)
 def create_article(
     req_article: ArticleCreation,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -128,6 +137,14 @@ def create_article(
     db.add(new_article)
     # pas besoin de flusher car db.commit() va flusher automatiquement
     db.commit()
+
+    # ne sera exécuté qu'après la réponse HTTP, en arrière-plan, pour ne pas bloquer le client
+    background_tasks.add_task(
+        envoyer_email_confirmation,
+        destinataire=new_article.auteur.email,
+        titre_article=new_article.titre,
+    )
+
     return new_article
 
 

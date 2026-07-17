@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Support interactif de formation Python Avancé : FastAPI + ORM : 02 — Implémenter des routes REST avec FastAPI">
+<title>02 — Implémenter des routes REST avec FastAPI</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --primary: #f0883e; --primary2: #ffa657;
+  --success: #3fb950; --warning: #d29922; --danger: #f85149;
+  --text: #e6edf3; --text-muted: #8b949e; --code-bg: #010409; --radius: 10px;
+  --topbar-h: 3.25rem;
+}
+:root[data-theme="light"] {
+  --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+  --primary: #bc4c00; --primary2: #953800;
+  --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+  --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+    --primary: #bc4c00; --primary2: #953800;
+    --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+    --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.7; transition: background .2s, color .2s; }
+
+/* TOPBAR — fixe, ne bouge jamais au scroll */
+.topbar {
+  position: sticky; top: 0; z-index: 200; height: var(--topbar-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .9rem; padding: 0 1rem;
+}
+.topbar .badge {
+  flex: 0 0 auto; background: var(--primary); color: #0d1117;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.topbar a.chapter-title {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: .5rem;
+  text-decoration: none; color: var(--text); font-weight: 700; font-size: .92rem;
+  overflow: hidden;
+}
+.topbar a.chapter-title:hover { color: var(--primary); }
+.topbar a.chapter-title .num { color: var(--primary); flex: 0 0 auto; }
+.topbar a.chapter-title .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-links { flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; }
+.topbar-link {
+  white-space: nowrap; padding: .4rem .8rem; border: 1px solid var(--border); border-radius: 20px;
+  font-size: .8rem; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: all .2s;
+}
+.topbar-link:hover { color: var(--primary); border-color: var(--primary); }
+.theme-toggle {
+  flex: 0 0 auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: .4rem .7rem; border-radius: 20px; font-size: .8rem; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.theme-toggle:hover { border-color: var(--primary); }
+
+/* LAYOUT — sidebar gauche + contenu */
+.layout { display: flex; align-items: flex-start; }
+.sidebar {
+  flex: 0 0 280px; width: 280px;
+  position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem 1rem 2rem;
+}
+.objectifs {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .8rem 1rem; margin-bottom: 1.25rem;
+}
+.objectifs-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.objectifs ul { margin: .4rem 0 0 1.1rem; }
+.objectifs li { font-size: .82rem; color: var(--text-muted); margin-bottom: .3rem; line-height: 1.4; }
+.side-nav { display: flex; flex-direction: column; gap: .1rem; }
+.side-nav button {
+  text-align: left; background: none; border: none; border-left: 3px solid transparent;
+  color: var(--text-muted); padding: .55rem .7rem; font-size: .87rem; font-weight: 500;
+  cursor: pointer; border-radius: 0 6px 6px 0; transition: all .15s;
+}
+.side-nav button:hover { color: var(--text); background: var(--surface2); }
+.side-nav button.active { color: var(--primary); border-left-color: var(--primary); background: var(--surface2); font-weight: 600; }
+.side-nav-sep { height: 1px; background: var(--border); margin: .6rem 0; }
+
+.content { flex: 1 1 auto; min-width: 0; }
+.tab-content { display: none; padding: 2rem 2.5rem 4rem; max-width: 1100px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* SECTIONS */
+h2 { font-size: 1.25rem; color: var(--primary2); margin: 1.8rem 0 .8rem; border-left: 3px solid var(--primary); padding-left: .75rem; }
+h3 { font-size: 1.05rem; color: var(--text); margin: 1.4rem 0 .6rem; }
+p { margin-bottom: .9rem; }
+ul, ol { padding-left: 1.4rem; margin-bottom: .9rem; }
+li { margin-bottom: .35rem; }
+
+/* RESSOURCES — liste sous forme de cartes plutôt que de puces */
+#tab-ressources ul { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: .5rem; }
+#tab-ressources li {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .75rem 1rem; margin-bottom: 0;
+}
+#tab-ressources li a { color: var(--primary2); font-weight: 600; text-decoration: none; }
+#tab-ressources li a:hover { text-decoration: underline; }
+
+/* AIDE — divulgation progressive pas-à-pas */
+details.aide { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+details.aide summary {
+  cursor: pointer; padding: .8rem 1.1rem; font-weight: 600; color: var(--primary);
+  list-style: none; display: flex; align-items: center; gap: .5rem;
+}
+details.aide summary::-webkit-details-marker { display: none; }
+details.aide summary::before { content: "▶"; font-size: .7rem; transition: transform .15s; }
+details.aide[open] summary::before { transform: rotate(90deg); }
+details.aide .aide-body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); margin-top: .2rem; padding-top: 1rem; }
+img { max-width: 100%; height: auto; display: block; margin: 1rem auto; }
+
+/* EXERCICE — un bloc par atelier, avec son aide pas-à-pas attachée juste en dessous */
+.exercice { padding: 1.3rem 0; border-top: 1px solid var(--border); }
+.exercice:first-of-type { border-top: none; padding-top: 0; }
+.exercice h3 { margin: 0 0 .8rem; color: var(--primary2); }
+
+/* CALLOUTS */
+.callout { border-radius: var(--radius); padding: .9rem 1.1rem; margin: 1.2rem 0; border-left: 4px solid; background: var(--surface2); }
+.callout.note   { border-color: var(--primary); }
+.callout.tip    { border-color: var(--success); }
+.callout.warn   { border-color: var(--warning); }
+.callout.danger { border-color: var(--danger); }
+.callout p:last-child { margin-bottom: 0; }
+.callout-title { font-weight: 700; font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+.callout.note   .callout-title { color: var(--primary); }
+.callout.tip    .callout-title { color: var(--success); }
+.callout.warn   .callout-title { color: var(--warning); }
+.callout.danger .callout-title { color: var(--danger); }
+
+/* TABLES */
+.table-wrap { overflow-x: auto; margin: 1rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th { background: var(--surface2); color: var(--primary2); text-align: left; padding: .6rem .9rem; font-weight: 600; border: 1px solid var(--border); }
+td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+tr:hover td { background: var(--surface2); }
+
+/* CODE */
+.code-block { position: relative; margin: 1rem 0; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1rem 1rem 1.2rem; overflow-x: auto; }
+code { font-family: 'Consolas', 'Cascadia Code', monospace; font-size: .88rem; color: var(--primary2); }
+p code, li code, td code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .05rem .35rem; }
+.copy-btn {
+  position: absolute; top: .5rem; right: .5rem;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  padding: .25rem .6rem; font-size: .75rem; border-radius: 5px; cursor: pointer; transition: all .2s;
+}
+.copy-btn:hover { background: var(--primary); color: #0d1117; }
+.copy-btn.copied { background: var(--success); color: #0d1117; }
+
+/* QUIZ */
+.quiz-question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; margin-bottom: 1.2rem; }
+.quiz-question h4 { color: var(--primary2); margin-bottom: .9rem; font-size: .98rem; }
+.quiz-options { display: flex; flex-direction: column; gap: .5rem; }
+.quiz-option {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: .6rem .9rem; cursor: pointer;
+  font-size: .9rem; transition: all .2s; text-align: left; color: var(--text);
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--primary); }
+.quiz-option.correct { border-color: var(--success); color: var(--success); }
+.quiz-option.wrong   { border-color: var(--danger);  color: var(--danger);  }
+.quiz-option:disabled { cursor: default; }
+.quiz-feedback { margin-top: .6rem; font-size: .87rem; color: var(--text-muted); font-style: italic; }
+.quiz-score {
+  background: var(--surface2); border: 1px solid var(--primary);
+  border-radius: var(--radius); padding: 1.5rem; text-align: center; margin-top: 1.5rem; display: none;
+}
+.quiz-score .score-num { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+.quiz-score p { color: var(--text-muted); margin-top: .4rem; }
+.btn-restart { background: var(--primary); color: #0d1117; border: none; padding: .6rem 1.4rem; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 1rem; font-size: .9rem; }
+.btn-restart:hover { background: var(--primary2); }
+
+/* RESPONSIVE — sidebar devient une barre horizontale sous 900px */
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: static; width: 100%; height: auto; max-height: 40vh;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .side-nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: .3rem; }
+  .side-nav button { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; border-radius: 6px 6px 0 0; }
+  .side-nav button.active { border-left-color: transparent; border-bottom-color: var(--primary); }
+  .side-nav-sep { display: none; }
+  .tab-content { padding: 1.5rem 1.2rem 3rem; }
+  .topbar a.chapter-title { font-size: .82rem; }
+}
+</style>
+<link rel="stylesheet" href="assets/course-common.css">
+<script src="assets/course-common.js" defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="badge">Python Avancé : FastAPI + ORM</span>
+  <a class="chapter-title" href="index.html" title="Retour à l'accueil de la formation">
+    <span class="num">02</span><span class="txt">Implémenter des routes REST avec FastAPI</span>
+  </a>
+  <div class="topbar-links">
+    <a href="annexes.html" class="topbar-link">Annexes ↗</a>
+    <a class="topbar-link" href="index.html">Sommaire</a>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Basculer entre thème clair et sombre">
+      <span id="theme-icon">🌙</span> <span id="theme-label">Sombre</span>
+    </button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="objectifs"><span class="objectifs-label">Objectifs</span><ul><li>Définir des routes FastAPI avec paramètres de chemin, de requête et corps JSON en appliquant la sémantique REST</li><li>Créer des modèles Pydantic pour valider les entrées et typer les réponses d&#x27;une API</li><li>Gérer les erreurs HTTP avec HTTPException et les handlers d&#x27;exception personnalisés</li><li>Écrire des gestionnaires asynchrones avec async/await pour les opérations I/O-bound</li></ul></div>
+    <nav class="side-nav" id="main-nav">
+      <button class="active" onclick="showTab('objectifs-du-chapitre')">Objectifs du chapitre</button>
+  <button class="" onclick="showTab('architecture-rest-et-organisation-du-code')">Architecture REST et organisation du code</button>
+  <button class="" onclick="showTab('parametres-de-requete-chemin-query-et-corps')">Paramètres de requête — chemin, query et corps</button>
+  <button class="" onclick="showTab('modeles-pydantic-validation-et-serialisation')">Modèles Pydantic — validation et sérialisation</button>
+  <button class="" onclick="showTab('reponses-http-codes-en-tetes-et-formats')">Réponses HTTP — codes, en-têtes et formats</button>
+  <button class="" onclick="showTab('gestion-des-erreurs-http')">Gestion des erreurs HTTP</button>
+  <button class="" onclick="showTab('crud-complet-exemple-avec-une-ressource-en-memoire')">CRUD complet — exemple avec une ressource en mémoire</button>
+  <button class="" onclick="showTab('traitements-asynchrones-avec-async-await')">Traitements asynchrones avec async/await</button>
+  <button class="" onclick="showTab('validation-avancee-des-donnees')">Validation avancée des données</button>
+  <button class="" onclick="showTab('documenter-les-endpoints')">Documenter les endpoints</button>
+  <button class="" onclick="showTab('travaux-pratiques')">Travaux pratiques</button>
+  <button class="" onclick="showTab('quiz')">Quiz</button>
+    </nav>
+  </aside>
+  <div class="content">
+    <div id="tab-objectifs-du-chapitre" class="tab-content active">
+<p>À l'issue de ce chapitre, chaque stagiaire est capable de :</p>
+<ul>
+<li>Structurer un projet FastAPI avec plusieurs routeurs (<code>APIRouter</code>) et un fichier <code>main.py</code> propre</li>
+<li>Déclarer des paramètres de chemin (<code>{id}</code>), de requête (<code>?page=2</code>) et de corps (JSON) avec les types appropriés</li>
+<li>Créer et utiliser des modèles Pydantic pour valider les entrées et filtrer les sorties</li>
+<li>Retourner des réponses HTTP avec le code de statut, les en-têtes et le corps corrects</li>
+<li>Lever des exceptions HTTP (<code>HTTPException</code>) avec le code et le message appropriés</li>
+<li>Écrire des gestionnaires <code>async def</code> pour les opérations I/O-bound et expliquer quand <code>async</code> est nécessaire</li>
+<li>Appliquer les quatre opérations CRUD (Create, Read, Update, Delete) sur une ressource fictive</li>
+</ul>
+</div>
+
+<div id="tab-architecture-rest-et-organisation-du-code" class="tab-content">
+<h3>Ressources et URLs — la convention REST</h3>
+<p>Dans une API REST, chaque <strong>ressource</strong> (entité du domaine métier) est identifiée par une URL. Les URLs doivent être des noms (substantifs), jamais des verbes — c'est la méthode HTTP qui exprime l'action.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>❌ URL avec verbe (non-REST)</th>
+<th>✅ URL avec nom (REST)</th>
+<th>Méthode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/getArticles</code></td>
+<td><code>/articles</code></td>
+<td><code>GET</code></td>
+</tr>
+<tr>
+<td><code>/createArticle</code></td>
+<td><code>/articles</code></td>
+<td><code>POST</code></td>
+</tr>
+<tr>
+<td><code>/updateArticle/42</code></td>
+<td><code>/articles/42</code></td>
+<td><code>PUT</code> / <code>PATCH</code></td>
+</tr>
+<tr>
+<td><code>/deleteArticle/42</code></td>
+<td><code>/articles/42</code></td>
+<td><code>DELETE</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>La convention d'URL REST pour une ressource <code>articles</code> suit un schéma systématique :</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Opération</th>
+<th>Méthode</th>
+<th>URL</th>
+<th>Corps</th>
+<th>Réponse typique</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lister</td>
+<td><code>GET</code></td>
+<td><code>/articles</code></td>
+<td>—</td>
+<td><code>200</code> + liste JSON</td>
+</tr>
+<tr>
+<td>Créer</td>
+<td><code>POST</code></td>
+<td><code>/articles</code></td>
+<td>JSON du nouvel article</td>
+<td><code>201</code> + article créé</td>
+</tr>
+<tr>
+<td>Lire un</td>
+<td><code>GET</code></td>
+<td><code>/articles/{id}</code></td>
+<td>—</td>
+<td><code>200</code> + article ou <code>404</code></td>
+</tr>
+<tr>
+<td>Remplacer</td>
+<td><code>PUT</code></td>
+<td><code>/articles/{id}</code></td>
+<td>JSON complet</td>
+<td><code>200</code> + article ou <code>404</code></td>
+</tr>
+<tr>
+<td>Modifier</td>
+<td><code>PATCH</code></td>
+<td><code>/articles/{id}</code></td>
+<td>JSON partiel</td>
+<td><code>200</code> + article ou <code>404</code></td>
+</tr>
+<tr>
+<td>Supprimer</td>
+<td><code>DELETE</code></td>
+<td><code>/articles/{id}</code></td>
+<td>—</td>
+<td><code>204</code> ou <code>200</code></td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout note"><div class="callout-title">Ressources imbriquées</div><p>Les ressources hiérarchiques s'expriment par imbrication d'URL : <code>/auteurs/7/articles</code> pour les articles de l'auteur 7. L'imbrication ne doit pas dépasser deux niveaux — au-delà, préférer <code>/articles?auteur_id=7</code> avec un paramètre de requête.</p></div>
+<h3>Organiser le code avec APIRouter</h3>
+<p>Pour un projet de plus d'une dizaine de routes, tout mettre dans <code>main.py</code> devient ingérable. FastAPI fournit <code>APIRouter</code> pour découper l'application en modules.</p>
+<div class="code-block"><pre><code>api-bibliotheque/
+├── main.py              ← Instanciation de l'app + inclusion des routeurs
+├── routers/
+│   ├── __init__.py
+│   ├── articles.py      ← Routes /articles
+│   └── auteurs.py       ← Routes /auteurs
+├── schemas/
+│   ├── __init__.py
+│   └── article.py       ← Modèles Pydantic
+└── requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># routers/articles.py
+from fastapi import APIRouter
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+@router.get(&quot;/&quot;)
+def list_articles():
+    return []
+
+@router.get(&quot;/{article_id}&quot;)
+def get_article(article_id: int):
+    return {&quot;id&quot;: article_id}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># main.py
+from fastapi import FastAPI
+from routers import articles, auteurs
+
+app = FastAPI(title=&quot;API Bibliothèque&quot;, version=&quot;1.0.0&quot;)
+
+app.include_router(articles.router)
+app.include_router(auteurs.router)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Le paramètre <code>prefix="/articles"</code> évite de répéter <code>/articles</code> dans chaque décorateur. Le paramètre <code>tags=["Articles"]</code> groupe les routes sous un même onglet dans Swagger UI.</p>
+<p><img alt="Organisation modulaire d'un projet FastAPI avec APIRouter" src="../08-images/ch02-apirouter-structure.svg" /></p>
+<p>Le schéma ci-dessus illustre la séparation entre le point d'entrée <code>main.py</code>, qui inclut les routeurs, et les modules spécialisés (<code>routers/articles.py</code>, <code>routers/auteurs.py</code>) qui définissent les routes de chaque ressource. Les schémas Pydantic sont définis dans <code>schemas/</code> et importés par les routeurs.</p>
+</div>
+
+<div id="tab-parametres-de-requete-chemin-query-et-corps" class="tab-content">
+<h3>Paramètres de chemin</h3>
+<p>Un paramètre de chemin est une valeur incluse dans l'URL elle-même, entre accolades dans le décorateur. FastAPI l'extrait, le convertit au type annoté et retourne <code>422</code> si la conversion échoue.</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import APIRouter
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+@router.get(&quot;/{article_id}&quot;)
+def get_article(article_id: int):
+    &quot;&quot;&quot;article_id est extrait de l'URL, converti en int, validé.&quot;&quot;&quot;
+    return {&quot;id&quot;: article_id, &quot;titre&quot;: f&quot;Article {article_id}&quot;}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Les paramètres de chemin peuvent être contraints avec des métadonnées <code>Path</code> :</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import APIRouter, Path
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+@router.get(&quot;/{article_id}&quot;)
+def get_article(
+    article_id: int = Path(gt=0, description=&quot;Identifiant entier positif de l'article&quot;)
+):
+    return {&quot;id&quot;: article_id}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><code>gt=0</code> (greater than 0) invalide les ID négatifs ou nuls avant même d'atteindre le code métier.</p>
+<h3>Paramètres de requête (query parameters)</h3>
+<p>Tout paramètre de fonction qui n'est pas dans l'URL ni dans le corps est automatiquement interprété comme un paramètre de requête (<code>?clé=valeur</code>).</p>
+<div class="code-block"><pre><code class="language-python">from typing import Optional
+
+@router.get(&quot;/&quot;)
+def list_articles(
+    page: int = 1,
+    taille: int = 10,
+    categorie: Optional[str] = None,
+):
+    &quot;&quot;&quot;
+    GET /articles → page=1, taille=10
+    GET /articles?page=2&amp;taille=5 → page=2, taille=5
+    GET /articles?categorie=python → filtre par catégorie
+    &quot;&quot;&quot;
+    return {
+        &quot;page&quot;: page,
+        &quot;taille&quot;: taille,
+        &quot;categorie&quot;: categorie,
+        &quot;articles&quot;: [],
+    }
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Les contraintes s'appliquent avec <code>Query</code> :</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import Query
+
+@router.get(&quot;/&quot;)
+def list_articles(
+    page: int = Query(default=1, ge=1, description=&quot;Numéro de page (commence à 1)&quot;),
+    taille: int = Query(default=10, ge=1, le=100, description=&quot;Nombre d'articles par page&quot;),
+):
+    ...
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><code>ge=1</code> (greater or equal) et <code>le=100</code> (less or equal) définissent les bornes. FastAPI retourne un <code>422</code> clair si elles sont dépassées.</p>
+<h3>Corps de requête JSON</h3>
+<p>Pour les méthodes <code>POST</code>, <code>PUT</code> et <code>PATCH</code>, les données sont transmises dans le corps de la requête au format JSON. FastAPI déclare un corps en annotant un paramètre avec un modèle Pydantic.</p>
+<div class="code-block"><pre><code class="language-python">from pydantic import BaseModel
+from fastapi import APIRouter
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+class ArticleCreation(BaseModel):
+    titre: str
+    contenu: str
+    publie: bool = False
+
+@router.post(&quot;/&quot;, status_code=201)
+def create_article(article: ArticleCreation):
+    &quot;&quot;&quot;
+    Reçoit un corps JSON :
+    {&quot;titre&quot;: &quot;Mon article&quot;, &quot;contenu&quot;: &quot;...&quot;, &quot;publie&quot;: false}
+    &quot;&quot;&quot;
+    return {&quot;id&quot;: 1, **article.model_dump()}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>FastAPI détecte automatiquement qu'<code>article</code> est un modèle Pydantic (pas un type primitif) et le lit depuis le corps de la requête. Il génère le schéma JSON correspondant dans Swagger UI, avec les champs requis mis en évidence.</p>
+<div class="callout warn"><div class="callout-title"><code>model_dump()</code> remplace <code>dict()</code> depuis Pydantic v2</div><p>La méthode <code>dict()</code> des modèles Pydantic est dépréciée depuis Pydantic v2 (utilisée avec FastAPI ≥ 0.100). Utiliser <code>model_dump()</code> à la place — <code>dict()</code> fonctionne encore mais génère des avertissements de dépréciation.</p></div>
+</div>
+
+<div id="tab-modeles-pydantic-validation-et-serialisation" class="tab-content">
+<h3>Bases de Pydantic v2</h3>
+<p>Pydantic est une bibliothèque de validation de données par annotation de type. Un modèle Pydantic est une classe qui hérite de <code>BaseModel</code> et dont les attributs sont des champs typés.</p>
+<div class="code-block"><pre><code class="language-python">from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Optional
+
+class Article(BaseModel):
+    id: int
+    titre: str
+    contenu: str
+    publie: bool = False
+    date_creation: datetime
+    categorie: Optional[str] = None
+    nb_vues: int = Field(default=0, ge=0)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Quand Pydantic reçoit des données (dict Python, JSON, etc.) à valider contre ce modèle :</p>
+<ul>
+<li>Les champs sans valeur par défaut sont <strong>obligatoires</strong> (<code>id</code>, <code>titre</code>, <code>contenu</code>, <code>date_creation</code>)</li>
+<li>Les champs avec valeur par défaut sont <strong>optionnels</strong> (<code>publie</code>, <code>categorie</code>, <code>nb_vues</code>)</li>
+<li>Pydantic effectue de la <strong>coercition de type</strong> : la chaîne <code>"42"</code> est automatiquement convertie en <code>int</code> pour un champ <code>int</code></li>
+<li>Si un champ obligatoire est absent ou si la coercition échoue, Pydantic lève une <code>ValidationError</code> que FastAPI transforme en <code>422</code></li>
+</ul>
+<h3>Schémas d'entrée vs schémas de sortie</h3>
+<p>Un principe clé en API REST : les données reçues (entrée) ne sont pas nécessairement les mêmes que les données exposées (sortie). Il est courant de définir plusieurs modèles pour la même entité.</p>
+<div class="code-block"><pre><code class="language-python">from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Optional
+
+# Modèle pour la CRÉATION (entrée) — pas d'id ni de date (générés côté serveur)
+class ArticleCreation(BaseModel):
+    titre: str = Field(min_length=3, max_length=200)
+    contenu: str = Field(min_length=10)
+    categorie: Optional[str] = None
+
+# Modèle pour la MODIFICATION partielle (entrée) — tous les champs optionnels
+class ArticleMiseAJour(BaseModel):
+    titre: Optional[str] = Field(default=None, min_length=3, max_length=200)
+    contenu: Optional[str] = Field(default=None, min_length=10)
+    categorie: Optional[str] = None
+
+# Modèle pour la RÉPONSE (sortie) — inclut id, date et champs calculés
+class ArticleReponse(BaseModel):
+    id: int
+    titre: str
+    contenu: str
+    categorie: Optional[str]
+    publie: bool
+    date_creation: datetime
+    nb_vues: int
+
+    model_config = {&quot;from_attributes&quot;: True}  # Permet la création depuis un ORM (Chapitre 4)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>La séparation entrée/sortie permet de :</p>
+<ul>
+<li>Empêcher les stagiaires d'injecter des champs comme <code>id</code> ou <code>date_creation</code> lors de la création</li>
+<li>Masquer des champs sensibles (mot de passe hashé) de la réponse</li>
+<li>Documenter séparément les schémas d'entrée et de sortie dans Swagger UI</li>
+</ul>
+<h3>Valider des types courants avec Field</h3>
+<div class="code-block"><pre><code class="language-python">from pydantic import BaseModel, Field, EmailStr
+from typing import List
+
+class Auteur(BaseModel):
+    nom: str = Field(min_length=2, max_length=100)
+    email: EmailStr                                    # Valide le format email
+    age: int = Field(ge=18, le=120)
+    tags: List[str] = Field(default_factory=list)     # Liste vide par défaut
+    biographie: str = Field(default=&quot;&quot;, max_length=2000)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout note"><div class="callout-title"><code>EmailStr</code> nécessite <code>email-validator</code></div><p>Pour utiliser <code>EmailStr</code>, installez : <code>pip install "pydantic[email]"</code>. Ce validateur vérifie la syntaxe de l'email (présence du <code>@</code>, domaine valide) mais n'envoie pas de mail de vérification.</p></div>
+<h3><code>response_model</code> — filtrer la sortie</h3>
+<p>Le paramètre <code>response_model</code> d'un décorateur de route indique à FastAPI quel modèle utiliser pour sérialiser et filtrer la réponse. Cela garantit que les champs non présents dans le modèle de sortie ne sont jamais exposés.</p>
+<div class="code-block"><pre><code class="language-python"># Base de données fictive en mémoire
+articles_db: list[dict] = [
+    {&quot;id&quot;: 1, &quot;titre&quot;: &quot;Intro FastAPI&quot;, &quot;contenu&quot;: &quot;...&quot;, &quot;publie&quot;: True,
+     &quot;date_creation&quot;: &quot;2024-01-15T10:00:00&quot;, &quot;nb_vues&quot;: 150, &quot;categorie&quot;: &quot;python&quot;,
+     &quot;mot_de_passe_interne&quot;: &quot;ne_pas_exposer&quot;},  # Champ interne
+]
+
+@router.get(&quot;/{article_id}&quot;, response_model=ArticleReponse)
+def get_article(article_id: int):
+    article = next((a for a in articles_db if a[&quot;id&quot;] == article_id), None)
+    if article is None:
+        raise HTTPException(status_code=404, detail=&quot;Article introuvable&quot;)
+    return article
+    # mot_de_passe_interne ne sera PAS dans la réponse — filtré par response_model
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout danger"><div class="callout-title">Ne jamais retourner plus que nécessaire</div><p>Sans <code>response_model</code>, FastAPI sérialise le dictionnaire entier retourné par le gestionnaire — y compris les champs sensibles (jetons, mots de passe hashés, données internes). Toujours définir un <code>response_model</code> explicite pour les routes qui retournent des entités.</p></div>
+</div>
+
+<div id="tab-reponses-http-codes-en-tetes-et-formats" class="tab-content">
+<h3>Codes de statut avec <code>status_code</code></h3>
+<p>Par défaut, FastAPI retourne <code>200 OK</code> pour toutes les routes. Pour changer le code de succès, utiliser le paramètre <code>status_code</code> du décorateur.</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import APIRouter
+from fastapi.responses import Response
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+@router.post(&quot;/&quot;, status_code=201)           # 201 Created pour la création
+def create_article(article: ArticleCreation) -&gt; ArticleReponse:
+    ...
+
+@router.delete(&quot;/{article_id}&quot;, status_code=204)  # 204 No Content pour la suppression
+def delete_article(article_id: int):
+    ...
+    return None  # Corps vide pour 204
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Retourner une <code>Response</code> personnalisée</h3>
+<p>Pour contrôler précisément les en-têtes ou le contenu, retourner une instance <code>Response</code> (ou une de ses sous-classes).</p>
+<div class="code-block"><pre><code class="language-python">from fastapi.responses import JSONResponse, Response
+
+@router.get(&quot;/{article_id}&quot;)
+def get_article(article_id: int):
+    article = get_from_db(article_id)
+    if article is None:
+        return JSONResponse(
+            status_code=404,
+            content={&quot;detail&quot;: &quot;Article introuvable&quot;, &quot;id&quot;: article_id}
+        )
+    return JSONResponse(
+        content=article,
+        headers={&quot;X-Article-Categorie&quot;: article.get(&quot;categorie&quot;, &quot;&quot;)},
+    )
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Dans la pratique, lever une <code>HTTPException</code> (section suivante) est plus courant que retourner un <code>JSONResponse</code> d'erreur manuellement.</p>
+</div>
+
+<div id="tab-gestion-des-erreurs-http" class="tab-content">
+<h3>HTTPException</h3>
+<p><code>HTTPException</code> est l'exception FastAPI à lever pour retourner une réponse d'erreur HTTP structurée. Elle interrompt immédiatement l'exécution du gestionnaire et retourne une réponse JSON avec le code et le message fournis.</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import APIRouter, HTTPException
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+# Base de données fictive
+articles_db: dict[int, dict] = {
+    1: {&quot;id&quot;: 1, &quot;titre&quot;: &quot;Intro FastAPI&quot;, &quot;contenu&quot;: &quot;...&quot;, &quot;publie&quot;: True},
+    2: {&quot;id&quot;: 2, &quot;titre&quot;: &quot;Pydantic v2&quot;, &quot;contenu&quot;: &quot;...&quot;, &quot;publie&quot;: False},
+}
+
+@router.get(&quot;/{article_id}&quot;, response_model=ArticleReponse)
+def get_article(article_id: int):
+    if article_id not in articles_db:
+        raise HTTPException(
+            status_code=404,
+            detail=f&quot;Article {article_id} introuvable&quot;
+        )
+    return articles_db[article_id]
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>La réponse générée est :</p>
+<div class="code-block"><pre><code class="language-json">HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{&quot;detail&quot;: &quot;Article 99 introuvable&quot;}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Le champ <code>detail</code> peut être une chaîne, un dictionnaire ou une liste — FastAPI le sérialise tel quel dans le corps JSON.</p>
+<div class="code-block"><pre><code class="language-python"># Erreur avec corps détaillé
+raise HTTPException(
+    status_code=422,
+    detail=[
+        {&quot;field&quot;: &quot;titre&quot;, &quot;msg&quot;: &quot;Le titre existe déjà&quot;},
+        {&quot;field&quot;: &quot;categorie&quot;, &quot;msg&quot;: &quot;Catégorie non reconnue&quot;},
+    ]
+)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Handlers d'exception personnalisés</h3>
+<p>Pour personnaliser globalement le format de réponse d'une exception, enregistrer un handler avec <code>@app.exception_handler</code>.</p>
+<div class="code-block"><pre><code class="language-python">from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
+
+class ArticleNonTrouveException(Exception):
+    def __init__(self, article_id: int):
+        self.article_id = article_id
+
+@app.exception_handler(ArticleNonTrouveException)
+async def article_not_found_handler(request: Request, exc: ArticleNonTrouveException):
+    return JSONResponse(
+        status_code=404,
+        content={
+            &quot;erreur&quot;: &quot;ARTICLE_NOT_FOUND&quot;,
+            &quot;message&quot;: f&quot;L'article {exc.article_id} n'existe pas&quot;,
+            &quot;code&quot;: 404,
+        },
+    )
+
+@app.get(&quot;/articles/{article_id}&quot;)
+def get_article(article_id: int):
+    if article_id not in articles_db:
+        raise ArticleNonTrouveException(article_id=article_id)
+    return articles_db[article_id]
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Ce mécanisme permet de centraliser le format des erreurs de l'API et d'assurer leur cohérence sans dupliquer le code de formatage dans chaque gestionnaire.</p>
+<p><img alt="Flux de gestion des erreurs dans FastAPI" src="../08-images/ch02-gestion-erreurs.svg" /></p>
+<p>Le schéma ci-dessus représente les trois niveaux de gestion des erreurs dans FastAPI : la validation automatique Pydantic (422), les <code>HTTPException</code> levées dans le code métier, et les handlers d'exception personnalisés pour les erreurs applicatives.</p>
+</div>
+
+<div id="tab-crud-complet-exemple-avec-une-ressource-en-memoire" class="tab-content">
+<p>Voici un module complet implémentant les quatre opérations CRUD sur une ressource <code>articles</code> stockée en mémoire. Cet exemple synthétise les notions précédentes.</p>
+<div class="code-block"><pre><code class="language-python"># routers/articles.py
+from fastapi import APIRouter, HTTPException, Path, Query
+from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Optional, List
+
+router = APIRouter(prefix=&quot;/articles&quot;, tags=[&quot;Articles&quot;])
+
+# --- Schémas Pydantic ---
+
+class ArticleCreation(BaseModel):
+    titre: str = Field(min_length=3, max_length=200)
+    contenu: str = Field(min_length=10)
+    categorie: Optional[str] = None
+
+class ArticleMiseAJour(BaseModel):
+    titre: Optional[str] = Field(default=None, min_length=3, max_length=200)
+    contenu: Optional[str] = Field(default=None, min_length=10)
+    categorie: Optional[str] = None
+
+class ArticleReponse(BaseModel):
+    id: int
+    titre: str
+    contenu: str
+    categorie: Optional[str]
+    publie: bool
+    date_creation: datetime
+
+# --- Base de données simulée ---
+
+_compteur_id = 0
+articles_db: dict[int, dict] = {}
+
+def _nouvel_id() -&gt; int:
+    global _compteur_id
+    _compteur_id += 1
+    return _compteur_id
+
+# --- Routes ---
+
+@router.get(&quot;/&quot;, response_model=List[ArticleReponse])
+def list_articles(
+    page: int = Query(default=1, ge=1),
+    taille: int = Query(default=10, ge=1, le=100),
+    categorie: Optional[str] = None,
+):
+    &quot;&quot;&quot;Liste les articles avec pagination et filtre optionnel par catégorie.&quot;&quot;&quot;
+    articles = list(articles_db.values())
+    if categorie:
+        articles = [a for a in articles if a.get(&quot;categorie&quot;) == categorie]
+    debut = (page - 1) * taille
+    return articles[debut : debut + taille]
+
+
+@router.post(&quot;/&quot;, response_model=ArticleReponse, status_code=201)
+def create_article(article: ArticleCreation):
+    &quot;&quot;&quot;Crée un nouvel article et retourne l'article créé avec son ID.&quot;&quot;&quot;
+    nouvel_id = _nouvel_id()
+    nouvel_article = {
+        &quot;id&quot;: nouvel_id,
+        **article.model_dump(),
+        &quot;publie&quot;: False,
+        &quot;date_creation&quot;: datetime.utcnow(),
+    }
+    articles_db[nouvel_id] = nouvel_article
+    return nouvel_article
+
+
+@router.get(&quot;/{article_id}&quot;, response_model=ArticleReponse)
+def get_article(article_id: int = Path(gt=0)):
+    &quot;&quot;&quot;Retourne l'article correspondant à l'ID ou 404.&quot;&quot;&quot;
+    if article_id not in articles_db:
+        raise HTTPException(status_code=404, detail=f&quot;Article {article_id} introuvable&quot;)
+    return articles_db[article_id]
+
+
+@router.put(&quot;/{article_id}&quot;, response_model=ArticleReponse)
+def replace_article(article_id: int, article: ArticleCreation):
+    &quot;&quot;&quot;Remplace complètement l'article (PUT = remplacement total).&quot;&quot;&quot;
+    if article_id not in articles_db:
+        raise HTTPException(status_code=404, detail=f&quot;Article {article_id} introuvable&quot;)
+    articles_db[article_id].update({
+        **article.model_dump(),
+        &quot;date_creation&quot;: articles_db[article_id][&quot;date_creation&quot;],  # Conserve la date d'origine
+    })
+    return articles_db[article_id]
+
+
+@router.patch(&quot;/{article_id}&quot;, response_model=ArticleReponse)
+def update_article(article_id: int, article: ArticleMiseAJour):
+    &quot;&quot;&quot;Met à jour partiellement l'article (PATCH = modification partielle).&quot;&quot;&quot;
+    if article_id not in articles_db:
+        raise HTTPException(status_code=404, detail=f&quot;Article {article_id} introuvable&quot;)
+    mises_a_jour = article.model_dump(exclude_none=True)  # Ignore les champs None
+    articles_db[article_id].update(mises_a_jour)
+    return articles_db[article_id]
+
+
+@router.delete(&quot;/{article_id}&quot;, status_code=204)
+def delete_article(article_id: int = Path(gt=0)):
+    &quot;&quot;&quot;Supprime l'article ou retourne 404.&quot;&quot;&quot;
+    if article_id not in articles_db:
+        raise HTTPException(status_code=404, detail=f&quot;Article {article_id} introuvable&quot;)
+    del articles_db[article_id]
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout tip"><div class="callout-title"><code>exclude_none=True</code> pour le PATCH</div><p><code>model_dump(exclude_none=True)</code> retourne uniquement les champs dont la valeur n'est pas <code>None</code>. C'est le mécanisme clé du <code>PATCH</code> : si le client n'envoie que <code>{"titre": "Nouveau titre"}</code>, seul <code>titre</code> est mis à jour — <code>contenu</code> et <code>categorie</code> restent inchangés dans la base.</p></div>
+</div>
+
+<div id="tab-traitements-asynchrones-avec-async-await" class="tab-content">
+<h3>Quand utiliser <code>async def</code> ?</h3>
+<p>FastAPI supporte à la fois les fonctions synchrones (<code>def</code>) et asynchrones (<code>async def</code>). Le choix dépend des opérations effectuées dans le gestionnaire.</p>
+<p><strong>Utiliser <code>async def</code></strong> quand le gestionnaire effectue des opérations I/O-bound qui ont un équivalent asynchrone : requêtes base de données (SQLAlchemy async, Tortoise ORM), appels HTTP sortants (httpx), lecture/écriture de fichiers (aiofiles), appels à des services externes.</p>
+<p><strong>Utiliser <code>def</code></strong> quand le gestionnaire effectue uniquement des calculs CPU-bound ou des opérations synchrones sans alternative async disponible. FastAPI exécute automatiquement les fonctions synchrones dans un thread pool pour éviter de bloquer la boucle d'événements.</p>
+<div class="code-block"><pre><code class="language-python">import asyncio
+import httpx
+
+# Gestionnaire asynchrone — approprié car attend une réponse réseau
+@router.get(&quot;/meteo/{ville}&quot;)
+async def get_meteo(ville: str):
+    &quot;&quot;&quot;Interroge une API météo tierce — opération I/O réseau.&quot;&quot;&quot;
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f&quot;https://api.exemple-meteo.com/v1/current?q={ville}&quot;
+        )
+        response.raise_for_status()
+        return response.json()
+
+# Gestionnaire synchrone — approprié pour du calcul pur
+@router.get(&quot;/calcul/{n}&quot;)
+def calcul_fibonacci(n: int):
+    &quot;&quot;&quot;Calcul CPU-bound — pas d'I/O, synchrone est correct.&quot;&quot;&quot;
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return {&quot;n&quot;: n, &quot;resultat&quot;: a}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout warn"><div class="callout-title">Ne pas bloquer la boucle d'événements dans un <code>async def</code></div><p>Dans un gestionnaire <code>async def</code>, éviter les appels bloquants synchrones (ex. <code>time.sleep()</code>, <code>requests.get()</code>, opérations SQLAlchemy synchrones lentes). Ces appels bloquent la boucle d'événements entière et annulent tout le bénéfice de l'asynchrone. Utiliser les équivalents async : <code>await asyncio.sleep()</code>, <code>httpx.AsyncClient</code>, SQLAlchemy async.</p></div>
+<h3>Paralléliser des appels asynchrones</h3>
+<p>L'un des avantages de <code>async/await</code> est la parallélisation de plusieurs opérations I/O indépendantes.</p>
+<div class="code-block"><pre><code class="language-python">import asyncio
+import httpx
+
+@router.get(&quot;/tableau-de-bord&quot;)
+async def get_tableau_de_bord(utilisateur_id: int):
+    &quot;&quot;&quot;
+    Récupère en parallèle les données utilisateur, ses commandes et ses notifications.
+    Sans async : 3 appels séquentiels → ~900ms.
+    Avec asyncio.gather : 3 appels parallèles → ~300ms.
+    &quot;&quot;&quot;
+    async with httpx.AsyncClient() as client:
+        profil_tache = client.get(f&quot;/users/{utilisateur_id}&quot;)
+        commandes_tache = client.get(f&quot;/orders?user={utilisateur_id}&quot;)
+        notifs_tache = client.get(f&quot;/notifications?user={utilisateur_id}&quot;)
+
+        profil, commandes, notifs = await asyncio.gather(
+            profil_tache, commandes_tache, notifs_tache
+        )
+
+    return {
+        &quot;profil&quot;: profil.json(),
+        &quot;commandes&quot;: commandes.json(),
+        &quot;notifications&quot;: notifs.json(),
+    }
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><code>asyncio.gather()</code> lance les trois coroutines en parallèle et attend que toutes trois soient terminées. La durée totale est celle de la plus lente — pas la somme des trois.</p>
+<h3>Contexte de vie de l'application — lifespan</h3>
+<p>Pour initialiser des ressources partagées (pool de connexions base de données, client HTTP réutilisable) au démarrage de l'application et les libérer à l'arrêt, FastAPI fournit le gestionnaire de contexte <code>lifespan</code>.</p>
+<div class="code-block"><pre><code class="language-python">from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Code exécuté au DÉMARRAGE (avant de traiter les premières requêtes)
+    print(&quot;Démarrage de l'application — initialisation des ressources&quot;)
+    app.state.http_client = httpx.AsyncClient()
+    yield  # L'application est opérationnelle entre les deux
+    # Code exécuté À L'ARRÊT (après la dernière requête)
+    await app.state.http_client.aclose()
+    print(&quot;Arrêt de l'application — ressources libérées&quot;)
+
+app = FastAPI(lifespan=lifespan)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Le gestionnaire <code>lifespan</code> remplace les événements <code>startup</code> et <code>shutdown</code> dépréciés depuis FastAPI 0.93.</p>
+<div class="callout note"><div class="callout-title"><code>app.state</code> pour les ressources partagées</div><p><code>app.state</code> est un namespace attaché à l'application FastAPI, accessible depuis n'importe quel gestionnaire via <code>request.app.state</code>. C'est le mécanisme recommandé pour partager un pool de connexions ou un client HTTP entre toutes les requêtes — à distinguer des dépendances (Chapitre 3) qui créent des ressources <strong>par requête</strong>.</p></div>
+</div>
+
+<div id="tab-validation-avancee-des-donnees" class="tab-content">
+<h3>Validators Pydantic v2</h3>
+<p>Pour des validations métier non exprimables avec <code>Field</code>, Pydantic v2 fournit les décorateurs <code>@field_validator</code> et <code>@model_validator</code>.</p>
+<div class="code-block"><pre><code class="language-python">from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Optional
+import re
+
+class ArticleCreation(BaseModel):
+    titre: str = Field(min_length=3, max_length=200)
+    slug: Optional[str] = None
+    contenu: str = Field(min_length=10)
+    tags: list[str] = Field(default_factory=list)
+
+    @field_validator(&quot;slug&quot;)
+    @classmethod
+    def slug_format_valide(cls, v: Optional[str]) -&gt; Optional[str]:
+        &quot;&quot;&quot;Le slug ne peut contenir que des lettres minuscules, chiffres et tirets.&quot;&quot;&quot;
+        if v is not None and not re.match(r&quot;^[a-z0-9-]+$&quot;, v):
+            raise ValueError(&quot;Le slug ne peut contenir que des caractères a-z, 0-9 et -&quot;)
+        return v
+
+    @field_validator(&quot;tags&quot;)
+    @classmethod
+    def tags_en_minuscules(cls, v: list[str]) -&gt; list[str]:
+        return [tag.lower().strip() for tag in v]
+
+    @model_validator(mode=&quot;after&quot;)
+    def generer_slug_si_absent(self) -&gt; &quot;ArticleCreation&quot;:
+        &quot;&quot;&quot;Génère automatiquement un slug depuis le titre si non fourni.&quot;&quot;&quot;
+        if self.slug is None:
+            self.slug = re.sub(r&quot;[^a-z0-9]+&quot;, &quot;-&quot;, self.titre.lower()).strip(&quot;-&quot;)
+        return self
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Le <code>@field_validator</code> est appelé pour un champ spécifique. Le <code>@model_validator(mode="after")</code> est appelé après que tous les champs ont été validés, avec accès à l'objet entier.</p>
+<h3>Types union et discriminants</h3>
+<div class="code-block"><pre><code class="language-python">from typing import Union, Literal
+from pydantic import BaseModel
+
+class ArticleTexte(BaseModel):
+    type: Literal[&quot;texte&quot;]
+    titre: str
+    contenu: str
+
+class ArticleVideo(BaseModel):
+    type: Literal[&quot;video&quot;]
+    titre: str
+    url_video: str
+    duree_secondes: int
+
+# Union discriminante — Pydantic choisit le bon modèle selon `type`
+TypeArticle = Union[ArticleTexte, ArticleVideo]
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Ce pattern évite une explosion de routes séparées quand plusieurs variantes d'une ressource coexistent.</p>
+</div>
+
+<div id="tab-documenter-les-endpoints" class="tab-content">
+<h3>Enrichir la documentation Swagger</h3>
+<div class="code-block"><pre><code class="language-python">@router.post(
+    &quot;/&quot;,
+    response_model=ArticleReponse,
+    status_code=201,
+    summary=&quot;Créer un article&quot;,
+    description=&quot;&quot;&quot;
+Crée un nouvel article dans la base de données.
+
+L'identifiant est généré automatiquement côté serveur.
+La date de création est définie au moment de la requête.
+&quot;&quot;&quot;,
+    response_description=&quot;L'article créé avec son identifiant et sa date de création&quot;,
+    responses={
+        409: {&quot;description&quot;: &quot;Un article avec ce titre existe déjà&quot;},
+    },
+)
+def create_article(article: ArticleCreation):
+    ...
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Les paramètres <code>summary</code>, <code>description</code> et <code>response_description</code> alimentent directement Swagger UI. Le paramètre <code>responses</code> permet de documenter les codes d'erreur non-standards pour que les consommateurs de l'API sachent les traiter.</p>
+<h3>Tags et groupes</h3>
+<div class="code-block"><pre><code class="language-python">from fastapi import FastAPI
+
+app = FastAPI(
+    openapi_tags=[
+        {&quot;name&quot;: &quot;Articles&quot;, &quot;description&quot;: &quot;Gestion des articles du catalogue&quot;},
+        {&quot;name&quot;: &quot;Auteurs&quot;, &quot;description&quot;: &quot;Gestion des profils auteurs&quot;},
+        {&quot;name&quot;: &quot;Santé&quot;, &quot;description&quot;: &quot;Endpoints de monitoring&quot;},
+    ]
+)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Les tags correspondent aux <code>tags=["Articles"]</code> passés aux <code>APIRouter</code> et organisent visuellement les endpoints dans Swagger UI.</p>
+</div>
+
+<div id="tab-travaux-pratiques" class="tab-content">
+<div class="exercice">
+<h3>Exercice 1 — API CRUD d&#x27;une ressource `taches`</h3>
+<p>Implémentez une API REST complète pour gérer une liste de tâches (to-do list) en mémoire.</p>
+<p><strong>Ressource <code>Tache</code> :</strong></p>
+<ul>
+<li><code>id</code> : entier (généré côté serveur)</li>
+<li><code>titre</code> : chaîne, 3–100 caractères</li>
+<li><code>description</code> : chaîne optionnelle</li>
+<li><code>terminee</code> : booléen, <code>False</code> par défaut</li>
+<li><code>priorite</code> : entier de 1 à 5, <code>3</code> par défaut</li>
+<li><code>date_creation</code> : datetime (générée côté serveur)</li>
+</ul>
+<p><strong>Routes à implémenter :</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Méthode</th>
+<th>URL</th>
+<th>Comportement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/taches</code></td>
+<td>Liste toutes les tâches. Filtre optionnel <code>?terminee=true/false</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/taches</code></td>
+<td>Crée une tâche, retourne <code>201</code> avec l'objet créé</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/taches/{id}</code></td>
+<td>Retourne la tâche ou <code>404</code></td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/taches/{id}</code></td>
+<td>Met à jour partiellement, retourne l'objet modifié</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/taches/{id}</code></td>
+<td>Supprime la tâche, retourne <code>204</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Critères de validation :</strong></p>
+<ul>
+<li>Schémas Pydantic distincts pour la création, la mise à jour (tous champs optionnels) et la réponse</li>
+<li><code>response_model</code> défini sur toutes les routes</li>
+<li><code>GET /taches/abc</code> retourne <code>422</code>, <code>GET /taches/999</code> retourne <code>404</code></li>
+<li>La pagination optionnelle <code>?page=1&amp;taille=5</code> est implémentée sur <code>GET /taches</code></li>
+<li>Tous les endpoints sont visibles et testables dans Swagger UI</li>
+</ul>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p>Vous allez construire pas à pas une API de gestion de tâches (to-do list) avec FastAPI.</p>
+<p><strong>Étape 1 — Préparer la structure du projet</strong></p>
+<p>Réutilisez ou créez un projet <code>api-taches</code> avec la structure :</p>
+<div class="code-block"><pre><code>api-taches/
+├── main.py
+├── routers/
+│   ├── __init__.py
+│   └── taches.py
+├── schemas/
+│   ├── __init__.py
+│   └── tache.py
+└── requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 2 — Définir les schémas Pydantic (<code>schemas/tache.py</code>)</strong></p>
+<div class="code-block"><pre><code class="language-python">from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Optional
+
+class TacheCreation(BaseModel):
+    titre: str = Field(min_length=3, max_length=100)
+    description: Optional[str] = None
+    terminee: bool = False
+    priorite: int = Field(default=3, ge=1, le=5)
+
+class TacheMiseAJour(BaseModel):
+    titre: Optional[str] = Field(default=None, min_length=3, max_length=100)
+    description: Optional[str] = None
+    terminee: Optional[bool] = None
+    priorite: Optional[int] = Field(default=None, ge=1, le=5)
+
+class TacheReponse(BaseModel):
+    id: int
+    titre: str
+    description: Optional[str]
+    terminee: bool
+    priorite: int
+    date_creation: datetime
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 3 — Écrire le routeur (<code>routers/taches.py</code>)</strong></p>
+<div class="code-block"><pre><code class="language-python">from fastapi import APIRouter, HTTPException, Path, Query
+from schemas.tache import TacheCreation, TacheMiseAJour, TacheReponse
+from datetime import datetime
+from typing import Optional, List
+
+router = APIRouter(prefix=&quot;/taches&quot;, tags=[&quot;Tâches&quot;])
+
+# Stockage en mémoire
+_id_counter = 0
+taches_db: dict[int, dict] = {}
+
+def _nouvel_id() -&gt; int:
+    global _id_counter
+    _id_counter += 1
+    return _id_counter
+
+
+@router.get(&quot;/&quot;, response_model=List[TacheReponse])
+def list_taches(
+    page: int = Query(default=1, ge=1),
+    taille: int = Query(default=10, ge=1, le=100),
+    terminee: Optional[bool] = None,
+):
+    taches = list(taches_db.values())
+    if terminee is not None:
+        taches = [t for t in taches if t[&quot;terminee&quot;] == terminee]
+    debut = (page - 1) * taille
+    return taches[debut:debut + taille]
+
+
+@router.post(&quot;/&quot;, response_model=TacheReponse, status_code=201)
+def create_tache(tache: TacheCreation):
+    nid = _nouvel_id()
+    nouvelle = {&quot;id&quot;: nid, **tache.model_dump(), &quot;date_creation&quot;: datetime.utcnow()}
+    taches_db[nid] = nouvelle
+    return nouvelle
+
+
+@router.get(&quot;/{tache_id}&quot;, response_model=TacheReponse)
+def get_tache(tache_id: int = Path(gt=0)):
+    if tache_id not in taches_db:
+        raise HTTPException(status_code=404, detail=f&quot;Tâche {tache_id} introuvable&quot;)
+    return taches_db[tache_id]
+
+
+@router.patch(&quot;/{tache_id}&quot;, response_model=TacheReponse)
+def update_tache(tache_id: int, tache: TacheMiseAJour):
+    if tache_id not in taches_db:
+        raise HTTPException(status_code=404, detail=f&quot;Tâche {tache_id} introuvable&quot;)
+    maj = tache.model_dump(exclude_none=True)
+    taches_db[tache_id].update(maj)
+    return taches_db[tache_id]
+
+
+@router.delete(&quot;/{tache_id}&quot;, status_code=204)
+def delete_tache(tache_id: int = Path(gt=0)):
+    if tache_id not in taches_db:
+        raise HTTPException(status_code=404, detail=f&quot;Tâche {tache_id} introuvable&quot;)
+    del taches_db[tache_id]
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 4 — Écrire <code>main.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python">from fastapi import FastAPI
+from routers import taches
+
+app = FastAPI(title=&quot;API Tâches&quot;, version=&quot;1.0.0&quot;)
+app.include_router(taches.router)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 5 — Tester via Swagger UI</strong></p>
+<ol>
+<li><code>fastapi dev main.py</code></li>
+<li>Ouvrir <code>http://localhost:8000/docs</code></li>
+<li>Créer deux tâches avec <code>POST /taches</code></li>
+<li>Lister avec <code>GET /taches</code></li>
+<li>Filtrer les tâches terminées : <code>GET /taches?terminee=false</code></li>
+<li>Mettre à jour une tâche : <code>PATCH /taches/1</code> avec <code>{"terminee": true}</code></li>
+<li>Supprimer une tâche : <code>DELETE /taches/1</code></li>
+<li>Tester <code>GET /taches/abc</code> → vérifier le <code>422</code></li>
+<li>Tester <code>GET /taches/999</code> → vérifier le <code>404</code></li>
+</ol>
+<hr /></div></details>
+</div>
+<div class="exercice">
+<h3>Exercice 2 — Gestionnaire d&#x27;erreurs uniforme</h3>
+<p>L'objectif est de créer un handler d'exception personnalisé qui uniformise le format de toutes les erreurs de l'API.</p>
+<p><strong>Format d'erreur cible :</strong></p>
+<div class="code-block"><pre><code class="language-json">{
+  &quot;erreur&quot;: &quot;RESSOURCE_INTROUVABLE&quot;,
+  &quot;message&quot;: &quot;La tâche 42 n'existe pas&quot;,
+  &quot;code&quot;: 404,
+  &quot;chemin&quot;: &quot;/taches/42&quot;
+}
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Travail à réaliser :</strong></p>
+<ol>
+<li>Définissez une exception <code>TacheIntrouvable(Exception)</code> avec un attribut <code>tache_id: int</code></li>
+<li>Enregistrez un handler sur <code>app</code> qui retourne le format JSON ci-dessus pour cette exception</li>
+<li>Modifiez <code>GET /taches/{id}</code> et <code>DELETE /taches/{id}</code> pour lever <code>TacheIntrouvable</code> plutôt que <code>HTTPException</code></li>
+<li>Vérifiez via Swagger UI que le format de l'erreur est bien celui attendu</li>
+</ol>
+<p><strong>Critère bonus :</strong> surcharger également le handler de <code>RequestValidationError</code> (erreurs Pydantic) pour qu'elles utilisent le même format <code>{"erreur": "VALIDATION_ERROR", ...}</code>.</p>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p><strong>Étape 1 — Définir l'exception personnalisée</strong></p>
+<p>Dans <code>main.py</code> (ou dans un fichier <code>exceptions.py</code>), ajoutez :</p>
+<div class="code-block"><pre><code class="language-python">class TacheIntrouvable(Exception):
+    def __init__(self, tache_id: int):
+        self.tache_id = tache_id
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 2 — Enregistrer le handler</strong></p>
+<div class="code-block"><pre><code class="language-python">from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+app = FastAPI(title=&quot;API Tâches&quot;, version=&quot;1.0.0&quot;)
+
+@app.exception_handler(TacheIntrouvable)
+async def tache_not_found_handler(request: Request, exc: TacheIntrouvable):
+    return JSONResponse(
+        status_code=404,
+        content={
+            &quot;erreur&quot;: &quot;RESSOURCE_INTROUVABLE&quot;,
+            &quot;message&quot;: f&quot;La tâche {exc.tache_id} n'existe pas&quot;,
+            &quot;code&quot;: 404,
+            &quot;chemin&quot;: str(request.url.path),
+        },
+    )
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 3 — Modifier le routeur</strong></p>
+<p>Remplacez les <code>HTTPException</code> des routes <code>GET /{id}</code> et <code>DELETE /{id}</code> :</p>
+<div class="code-block"><pre><code class="language-python"># Avant
+raise HTTPException(status_code=404, detail=f&quot;Tâche {tache_id} introuvable&quot;)
+
+# Après
+raise TacheIntrouvable(tache_id=tache_id)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 4 — Vérification</strong></p>
+<ol>
+<li>Relancez le serveur</li>
+<li>Testez <code>GET /taches/999</code> via Swagger UI ou Postman</li>
+<li>Vérifiez que le corps de réponse correspond au format attendu :
+   <code>json
+   {"erreur": "RESSOURCE_INTROUVABLE", "message": "La tâche 999 n'existe pas", "code": 404, "chemin": "/taches/999"}</code></li>
+</ol></div></details>
+</div>
+</div>
+
+<div id="tab-quiz" class="tab-content">
+<div id="quiz-container">
+<div class="quiz-question" id="q1">
+  <h4>Question 1 — Selon les conventions REST, quelle URL est correcte pour créer un nouvel article ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(1,'a')">A) <code>POST /createArticle</code></button>
+    <button class="quiz-option" onclick="answer(1,'b')">B) <code>GET /articles/new</code></button>
+    <button class="quiz-option" onclick="answer(1,'c')">C) <code>POST /articles</code></button>
+    <button class="quiz-option" onclick="answer(1,'d')">D) <code>PUT /articles/create</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb1"></div>
+</div>
+<div class="quiz-question" id="q2">
+  <h4>Question 2 — Dans FastAPI, comment déclarer un paramètre de requête optionnel <code>categorie</code> de type chaîne, sans valeur par défaut imposée ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(2,'a')">A) <code>categorie: str</code></button>
+    <button class="quiz-option" onclick="answer(2,'b')">B) <code>categorie: Optional[str] = None</code></button>
+    <button class="quiz-option" onclick="answer(2,'c')">C) <code>categorie: str = Query(required=False)</code></button>
+    <button class="quiz-option" onclick="answer(2,'d')">D) <code>categorie: str | None</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb2"></div>
+</div>
+<div class="quiz-question" id="q3">
+  <h4>Question 3 — Quelle méthode de modèle Pydantic v2 retourne un dictionnaire en excluant les champs dont la valeur est <code>None</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(3,'a')">A) <code>model.dict(skip_none=True)</code></button>
+    <button class="quiz-option" onclick="answer(3,'b')">B) <code>model.model_dump(exclude_none=True)</code></button>
+    <button class="quiz-option" onclick="answer(3,'c')">C) <code>model.to_dict(omit_null=True)</code></button>
+    <button class="quiz-option" onclick="answer(3,'d')">D) <code>model.json(exclude_unset=True)</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb3"></div>
+</div>
+<div class="quiz-question" id="q4">
+  <h4>Question 4 — Dans un décorateur <code>@router.post("/", status_code=201)</code>, quel est l'effet du paramètre <code>status_code=201</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(4,'a')">A) Il valide que le corps de réponse contient un champ <code>id</code></button>
+    <button class="quiz-option" onclick="answer(4,'b')">B) Il force FastAPI à retourner le code HTTP 201 en cas de succès au lieu de 200</button>
+    <button class="quiz-option" onclick="answer(4,'c')">C) Il indique le code HTTP attendu dans la requête du client</button>
+    <button class="quiz-option" onclick="answer(4,'d')">D) Il déclenche une <code>HTTPException</code> si la création échoue</button>
+  </div>
+  <div class="quiz-feedback" id="fb4"></div>
+</div>
+<div class="quiz-question" id="q5">
+  <h4>Question 5 — Que retourne FastAPI quand on lève <code>raise HTTPException(status_code=404, detail="Introuvable")</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(5,'a')">A) Une page HTML d'erreur 404</button>
+    <button class="quiz-option" onclick="answer(5,'b')">B) Une réponse JSON <code>{"detail": "Introuvable"}</code> avec le code 404</button>
+    <button class="quiz-option" onclick="answer(5,'c')">C) Une exception Python non interceptée visible dans les logs</button>
+    <button class="quiz-option" onclick="answer(5,'d')">D) Un corps vide avec le code 404</button>
+  </div>
+  <div class="quiz-feedback" id="fb5"></div>
+</div>
+<div class="quiz-question" id="q6">
+  <h4>Question 6 — Dans le contexte de FastAPI, quand est-il <strong>correct</strong> d'utiliser <code>async def</code> pour un gestionnaire ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(6,'a')">A) Toujours — les gestionnaires doivent systématiquement être asynchrones</button>
+    <button class="quiz-option" onclick="answer(6,'b')">B) Jamais — FastAPI gère l'asynchrone en interne</button>
+    <button class="quiz-option" onclick="answer(6,'c')">C) Quand le gestionnaire effectue des opérations I/O-bound avec un équivalent async disponible (ex. httpx, SQLAlchemy async)</button>
+    <button class="quiz-option" onclick="answer(6,'d')">D) Uniquement pour les routes <code>GET</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb6"></div>
+</div>
+<div class="quiz-question" id="q7">
+  <h4>Question 7 — Quel paramètre du décorateur de route indique à FastAPI quel modèle Pydantic utiliser pour sérialiser et <strong>filtrer</strong> la réponse ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(7,'a')">A) <code>schema_model</code></button>
+    <button class="quiz-option" onclick="answer(7,'b')">B) <code>output_schema</code></button>
+    <button class="quiz-option" onclick="answer(7,'c')">C) <code>response_model</code></button>
+    <button class="quiz-option" onclick="answer(7,'d')">D) <code>return_type</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb7"></div>
+</div>
+<div class="quiz-question" id="q8">
+  <h4>Question 8 — Quelle est la différence entre <code>PUT /articles/42</code> et <code>PATCH /articles/42</code> en REST ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(8,'a')">A) <code>PUT</code> est plus rapide car il n'envoie que les champs modifiés</button>
+    <button class="quiz-option" onclick="answer(8,'b')">B) <code>PUT</code> remplace complètement la ressource ; <code>PATCH</code> la modifie partiellement</button>
+    <button class="quiz-option" onclick="answer(8,'c')">C) <code>PUT</code> est idempotent, <code>PATCH</code> ne l'est pas</button>
+    <button class="quiz-option" onclick="answer(8,'d')">D) Il n'y a pas de différence sémantique, c'est une convention arbitraire</button>
+  </div>
+  <div class="quiz-feedback" id="fb8"></div>
+</div>
+<div class="quiz-question" id="q9">
+  <h4>Question 9 — Que fait <code>APIRouter(prefix="/articles", tags=["Articles"])</code> dans FastAPI ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(9,'a')">A) Crée un sous-domaine <code>articles.</code> pour les routes</button>
+    <button class="quiz-option" onclick="answer(9,'b')">B) Préfixe toutes les routes du routeur avec <code>/articles</code> et les groupe sous l'onglet "Articles" dans Swagger UI</button>
+    <button class="quiz-option" onclick="answer(9,'c')">C) Restreint les routes aux seuls utilisateurs avec le tag "Articles"</button>
+    <button class="quiz-option" onclick="answer(9,'d')">D) Génère automatiquement les quatre routes CRUD</button>
+  </div>
+  <div class="quiz-feedback" id="fb9"></div>
+</div>
+<div class="quiz-question" id="q10">
+  <h4>Question 10 — Dans <code>asyncio.gather(tache1, tache2, tache3)</code>, comment les trois tâches sont-elles exécutées ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(10,'a')">A) Séquentiellement, dans l'ordre déclaré</button>
+    <button class="quiz-option" onclick="answer(10,'b')">B) En parallèle, la durée totale étant celle de la plus lente</button>
+    <button class="quiz-option" onclick="answer(10,'c')">C) En parallèle, la durée totale étant la somme des trois</button>
+    <button class="quiz-option" onclick="answer(10,'d')">D) Dans un thread pool séparé de la boucle d'événements</button>
+  </div>
+  <div class="quiz-feedback" id="fb10"></div>
+</div>
+</div>
+<div class="quiz-score" id="quiz-score">
+  <div class="score-num" id="score-display">0 / 10</div>
+  <p id="score-msg"></p>
+  <button class="btn-restart" onclick="restartQuiz()">Recommencer</button>
+</div>
+</div>
+  </div>
+</div>
+
+<script>
+// ─── THEME ──────────────────────────────────────────────────────────────────
+(function () {
+  const root = document.documentElement;
+  const stored = localStorage.getItem('dawan-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  updateToggleLabel();
+})();
+
+function updateToggleLabel() {
+  const current = document.documentElement.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.getElementById('theme-icon').textContent = current === 'dark' ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = current === 'dark' ? 'Sombre' : 'Clair';
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('dawan-theme', next);
+  updateToggleLabel();
+}
+
+// ─── TABS ───────────────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.side-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  document.querySelector('.content').scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// ─── COPY CODE ──────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = 'Copié !'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── QUIZ ────────────────────────────────────────────────────────────────────
+const answers = { 1:'c', 2:'b', 3:'b', 4:'b', 5:'b', 6:'c', 7:'c', 8:'b', 9:'b', 10:'b' };
+const feedbacks = {
+  1: { c: "Exact ! En REST, l'URL désigne la ressource (un nom), la méthode HTTP désigne l'action. <code>POST /articles</code> crée un article. Les URLs avec verbes (<code>/createArticle</code>) violent les conventions REST (section \"Ressources et URLs — la convention REST\").", wrong: "Non. La bonne réponse est C) <code>POST /articles</code> — En REST, l'URL désigne la ressource (un nom), la méthode HTTP désigne l'action. <code>POST /articles</code> crée un article. Les URLs avec verbes (<code>/createArticle</code>) violent les conventions REST (section \"Ressources et URLs — la convention REST\")." },
+  2: { b: "Exact ! <code>Optional[str]</code> est équivalent à <code>str | None</code> ; la valeur par défaut <code>None</code> rend le paramètre facultatif. Sans valeur par défaut, un paramètre de type primitif serait <strong>obligatoire</strong> dans la query string (section \"Paramètres de requête\").", wrong: "Non. La bonne réponse est B) <code>categorie: Optional[str] = None</code> — <code>Optional[str]</code> est équivalent à <code>str | None</code> ; la valeur par défaut <code>None</code> rend le paramètre facultatif. Sans valeur par défaut, un paramètre de type primitif serait <strong>obligatoire</strong> dans la query string (section \"Paramètres de requête\")." },
+  3: { b: "Exact ! <code>model_dump()</code> remplace <code>dict()</code> en Pydantic v2. <code>exclude_none=True</code> exclut les champs dont la valeur est <code>None</code>, ce qui est le mécanisme clé du <code>PATCH</code> partiel (section \"CRUD complet\").", wrong: "Non. La bonne réponse est B) <code>model.model_dump(exclude_none=True)</code> — <code>model_dump()</code> remplace <code>dict()</code> en Pydantic v2. <code>exclude_none=True</code> exclut les champs dont la valeur est <code>None</code>, ce qui est le mécanisme clé du <code>PATCH</code> partiel (section \"CRUD complet\")." },
+  4: { b: "Exact ! Par défaut FastAPI retourne 200. <code>status_code=201</code> indique que la création réussie doit retourner 201 Created (section \"Réponses HTTP — codes, en-têtes et formats\").", wrong: "Non. La bonne réponse est B) Il force FastAPI à retourner le code HTTP 201 en cas de succès au lieu de 200 — Par défaut FastAPI retourne 200. <code>status_code=201</code> indique que la création réussie doit retourner 201 Created (section \"Réponses HTTP — codes, en-têtes et formats\")." },
+  5: { b: "Exact ! <code>HTTPException</code> est interceptée par FastAPI qui construit une <code>JSONResponse</code> avec le <code>status_code</code> et le champ <code>detail</code> fournis (section \"HTTPException\").", wrong: "Non. La bonne réponse est B) Une réponse JSON <code>{\"detail\": \"Introuvable\"}</code> avec le code 404 — <code>HTTPException</code> est interceptée par FastAPI qui construit une <code>JSONResponse</code> avec le <code>status_code</code> et le champ <code>detail</code> fournis (section \"HTTPException\")." },
+  6: { c: "Exact ! <code>async def</code> est utile pour les I/O-bound (httpx, SQLAlchemy async). Pour les calculs CPU-bound, <code>def</code> synchrone dans un thread pool est souvent plus adapté (section \"Traitements asynchrones avec async/await\").", wrong: "Non. La bonne réponse est C) Quand le gestionnaire effectue des opérations I/O-bound avec un équivalent async disponible (ex. httpx, SQLAlchemy async) — <code>async def</code> est utile pour les I/O-bound (httpx, SQLAlchemy async). Pour les calculs CPU-bound, <code>def</code> synchrone dans un thread pool est souvent plus adapté (section \"Traitements asynchrones avec async/await\")." },
+  7: { c: "Exact ! <code>response_model</code> définit le modèle Pydantic utilisé pour sérialiser et filtrer la sortie, garantissant que les champs non présents dans le modèle ne sont jamais exposés (section \"response_model — filtrer la sortie\").", wrong: "Non. La bonne réponse est C) <code>response_model</code> — <code>response_model</code> définit le modèle Pydantic utilisé pour sérialiser et filtrer la sortie, garantissant que les champs non présents dans le modèle ne sont jamais exposés (section \"response_model — filtrer la sortie\")." },
+  8: { b: "Exact ! <code>PUT</code> est idempotent et remplace toute la ressource ; <code>PATCH</code> ne met à jour que les champs fournis (section \"Architecture REST et organisation du code\").", wrong: "Non. La bonne réponse est B) <code>PUT</code> remplace complètement la ressource ; <code>PATCH</code> la modifie partiellement — <code>PUT</code> est idempotent et remplace toute la ressource ; <code>PATCH</code> ne met à jour que les champs fournis (section \"Architecture REST et organisation du code\")." },
+  9: { b: "Exact ! <code>prefix</code> évite la répétition dans chaque décorateur ; <code>tags</code> organise les routes dans la documentation (section \"Organiser le code avec APIRouter\").", wrong: "Non. La bonne réponse est B) Préfixe toutes les routes du routeur avec <code>/articles</code> et les groupe sous l'onglet \"Articles\" dans Swagger UI — <code>prefix</code> évite la répétition dans chaque décorateur ; <code>tags</code> organise les routes dans la documentation (section \"Organiser le code avec APIRouter\")." },
+  10: { b: "Exact ! <code>asyncio.gather()</code> lance toutes les coroutines en parallèle et attend que toutes soient terminées. La durée totale est le maximum des durées individuelles (section \"Paralléliser des appels asynchrones\").", wrong: "Non. La bonne réponse est B) En parallèle, la durée totale étant celle de la plus lente — <code>asyncio.gather()</code> lance toutes les coroutines en parallèle et attend que toutes soient terminées. La durée totale est le maximum des durées individuelles (section \"Paralléliser des appels asynchrones\")." }
+};
+const QUIZ_TOTAL = 10;
+let score = 0;
+let answered = {};
+
+function answer(qNum, choice) {
+  if (answered[qNum]) return;
+  answered[qNum] = true;
+  score += (choice === answers[qNum]) ? 1 : 0;
+  const qEl = document.getElementById('q' + qNum);
+  qEl.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = true;
+    const ltr = btn.textContent.trim()[0].toLowerCase();
+    if (ltr === answers[qNum]) btn.classList.add('correct');
+    else if (ltr === choice) btn.classList.add('wrong');
+  });
+  const fb = feedbacks[qNum];
+  document.getElementById('fb' + qNum).textContent = (choice === answers[qNum]) ? fb[answers[qNum]] : fb.wrong;
+  if (Object.keys(answered).length === QUIZ_TOTAL) showScore();
+}
+
+function showScore() {
+  const el = document.getElementById('quiz-score');
+  el.style.display = 'block';
+  document.getElementById('score-display').textContent = score + ' / ' + QUIZ_TOTAL;
+  const ratio = score / QUIZ_TOTAL;
+  let msg;
+  if (ratio === 1) msg = 'Parfait ! Toutes les réponses sont correctes.';
+  else if (ratio >= .8) msg = 'Très bien ! Vous maîtrisez l\'essentiel.';
+  else if (ratio >= .6) msg = 'Pas mal ! Relisez les points manqués.';
+  else if (ratio >= .4) msg = 'Quelques notions à revoir.';
+  else msg = 'Revoyez le cours avant de continuer.';
+  document.getElementById('score-msg').textContent = msg;
+}
+
+function restartQuiz() {
+  score = 0; answered = {};
+  document.getElementById('quiz-score').style.display = 'none';
+  document.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('correct','wrong');
+  });
+  document.querySelectorAll('.quiz-feedback').forEach(fb => fb.textContent = '');
+}
+</script>
+</body>
+</html>

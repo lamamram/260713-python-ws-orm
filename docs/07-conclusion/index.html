@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Support de formation Python Avancé : FastAPI + ORM — sommaire">
+<title>Python Avancé : FastAPI + ORM — Sommaire</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --primary: #f0883e; --primary2: #ffa657;
+  --success: #3fb950; --warning: #d29922; --danger: #f85149;
+  --text: #e6edf3; --text-muted: #8b949e; --radius: 10px; --topbar-h: 3.25rem;
+}
+:root[data-theme="light"] {
+  --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+  --primary: #bc4c00; --primary2: #953800;
+  --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+  --text: #1f2328; --text-muted: #656d76;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+    --primary: #bc4c00; --primary2: #953800;
+    --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+    --text: #1f2328; --text-muted: #656d76;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.6; transition: background .2s, color .2s; }
+
+/* TOPBAR — fixe, ne bouge jamais au scroll */
+.topbar {
+  position: sticky; top: 0; z-index: 200; height: var(--topbar-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .9rem; padding: 0 1rem;
+}
+.topbar .badge {
+  flex: 0 0 auto; background: var(--primary); color: #0d1117;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.topbar .formation-name { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.theme-toggle {
+  flex: 0 0 auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: .4rem .7rem; border-radius: 20px; font-size: .8rem; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.theme-toggle:hover { border-color: var(--primary); }
+
+/* LAYOUT — sidebar gauche fixe + contenu centré */
+.layout { display: flex; align-items: flex-start; }
+.sidebar {
+  flex: 0 0 280px; width: 280px;
+  position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem 1rem 2rem;
+}
+.side-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 1rem 0 .4rem; padding: 0 .7rem; }
+.side-label:first-child { margin-top: 0; }
+.side-nav { display: flex; flex-direction: column; gap: .1rem; }
+.side-nav a {
+  display: block; text-decoration: none; border-left: 3px solid transparent;
+  color: var(--text-muted); padding: .55rem .7rem; font-size: .87rem; font-weight: 500;
+  border-radius: 0 6px 6px 0; transition: all .15s;
+}
+.side-nav a .n { color: var(--primary); font-weight: 700; margin-right: .35rem; }
+.side-nav a:hover { color: var(--text); background: var(--surface2); border-left-color: var(--border); }
+
+.content { flex: 1 1 auto; min-width: 0; }
+.content-inner { max-width: 1000px; margin: 0 auto; padding: 2.5rem 2.5rem 4rem; }
+.content-inner h1 { font-size: 1.9rem; margin-bottom: .3rem; }
+.content-inner .tagline { color: var(--text-muted); margin-bottom: 2rem; }
+
+.intro h2 { font-size: 1.15rem; color: var(--primary2); margin: 1.6rem 0 .7rem; border-left: 3px solid var(--primary); padding-left: .7rem; }
+.intro h3 { font-size: 1rem; margin: 1.2rem 0 .5rem; }
+.intro p { margin-bottom: .8rem; color: var(--text); }
+.intro ul, .intro ol { padding-left: 1.3rem; margin-bottom: .8rem; }
+.intro li { margin-bottom: .3rem; color: var(--text); }
+.intro .table-wrap { overflow-x: auto; margin: 1rem 0; }
+.intro table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.intro th { background: var(--surface2); color: var(--primary2); text-align: left; padding: .55rem .8rem; border: 1px solid var(--border); }
+.intro td { padding: .5rem .8rem; border: 1px solid var(--border); }
+
+footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: .85rem; }
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar { position: static; width: 100%; height: auto; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
+  .content-inner { padding: 1.5rem 1.2rem 3rem; }
+}
+</style>
+<link rel="stylesheet" href="assets/course-common.css">
+<script src="assets/course-common.js" defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="badge">Python Avancé : FastAPI + ORM</span>
+  <span class="formation-name">Python Avancé : FastAPI + ORM</span>
+  <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Basculer entre thème clair et sombre">
+    <span id="theme-icon">🌙</span> <span id="theme-label">Sombre</span>
+  </button>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="side-label">Chapitres</div>
+    <nav class="side-nav">
+      <a href="chapitre-01-decouverte-de-fastapi-et-des-web-services.html"><span class="n">01</span>Découverte de FastAPI et des Web Services</a>
+    <a href="chapitre-02-implementer-des-routes-rest-avec-fastapi.html"><span class="n">02</span>Implémenter des routes REST avec FastAPI</a>
+    <a href="chapitre-03-securite-dependances-et-deploiement-fastapi.html"><span class="n">03</span>Sécurité, dépendances et déploiement FastAPI</a>
+    <a href="chapitre-04-sqlalchemy-modelisation-et-requetes.html"><span class="n">04</span>SQLAlchemy — Modélisation et requêtes</a>
+    <a href="chapitre-05-sqlalchemy-avance-et-integration-avec-fastapi.html"><span class="n">05</span>SQLAlchemy avancé et intégration avec FastAPI</a>
+    </nav>
+    <div class="side-label">Ressources</div>
+    <nav class="side-nav">
+      <a href="annexes.html">Glossaire &amp; référence rapide</a>
+    </nav>
+  </aside>
+  <div class="content">
+    <div class="content-inner">
+      <h1>Python Avancé : FastAPI + ORM</h1>
+      <p class="tagline">Formation Python Avancé : FastAPI + ORM — 5 jours.</p>
+      <div class="intro"><h2>Bienvenue</h2>
+<p>Cette formation vous accompagne dans la construction d'une API REST complète en Python, de la définition des routes jusqu'à la persistance des données en base relationnelle. Elle s'adresse à des développeurs Python déjà opérationnels qui souhaitent maîtriser deux outils devenus incontournables dans l'écosystème backend Python : <strong>FastAPI</strong> pour l'exposition d'une API web moderne et <strong>SQLAlchemy</strong> pour la couche d'accès aux données.</p>
+<p>L'objectif final : être capable de concevoir, implémenter, sécuriser et déployer une API REST complète avec FastAPI, alimentée par une base de données relationnelle gérée via SQLAlchemy, avec des migrations pilotées par Alembic — le tout documenté automatiquement, testé et prêt pour la mise en production.</p>
+<h2>Tour de table</h2>
+<p>Avant de commencer, un tour de table permet d'ajuster le niveau et le rythme de la semaine :</p>
+<ul>
+<li>Quel est votre contexte professionnel actuel (type de projets, stack technique) ?</li>
+<li>Avez-vous déjà exposé ou consommé une API REST, même dans un autre langage ?</li>
+<li>Avez-vous une expérience avec un framework web Python (Flask, Django, Pyramid) ?</li>
+<li>Avez-vous déjà interagi avec une base de données relationnelle depuis Python (sqlite3, psycopg2, SQLAlchemy) ?</li>
+<li>Avez-vous un projet personnel ou professionnel que vous aimeriez prototyper pendant la formation ?</li>
+</ul>
+<h2>Objectifs de la formation</h2>
+<p>À l'issue de la formation, chaque stagiaire est capable de :</p>
+<ul>
+<li>Comprendre et appliquer l'architecture REST pour exposer des ressources via une API HTTP</li>
+<li>Créer un projet FastAPI complet avec routage, validation Pydantic et documentation OpenAPI automatique</li>
+<li>Gérer les paramètres de requête, les corps JSON et les réponses avec les codes HTTP appropriés</li>
+<li>Implémenter une authentification par jeton JWT avec le système de dépendances de FastAPI</li>
+<li>Écrire des gestionnaires asynchrones (<code>async</code>/<code>await</code>) adaptés aux opérations I/O-bound</li>
+<li>Modéliser une base de données relationnelle avec SQLAlchemy ORM (modèles, colonnes, relations)</li>
+<li>Écrire des requêtes ORM de base et avancées (filtres, jointures, agrégations, eager loading)</li>
+<li>Gérer l'évolution du schéma de données avec Alembic</li>
+<li>Intégrer SQLAlchemy dans FastAPI via le système de dépendances (session par requête)</li>
+<li>Tester une API FastAPI avec <code>pytest</code> et <code>TestClient</code></li>
+<li>Conteneuriser et déployer une API FastAPI avec Docker</li>
+</ul>
+<h2>Public concerné et prérequis</h2>
+<p>Cette formation s'adresse à des développeurs Python souhaitant passer à une architecture orientée services ou consolider une pratique existante des API et des ORM.</p>
+<p>Prérequis :</p>
+<ul>
+<li>Avoir suivi la formation "Python : Initiation + Approfondissement" ou posséder les notions équivalentes : manipulation de classes et d'objets, exceptions, fichiers, modules</li>
+<li>Notions de base en SQL (SELECT, INSERT, JOIN) — utiles mais rappelées en contexte lors du Chapitre 4</li>
+<li>Aucune connaissance préalable de FastAPI, SQLAlchemy ou de tout autre framework web Python n'est requise</li>
+</ul>
+<h2>Programme de la semaine</h2>
+<p>La formation se déroule sur cinq jours, organisés en deux blocs : les trois premiers jours couvrent FastAPI de A à Z (de la découverte jusqu'au déploiement sécurisé), les deux derniers jours couvrent SQLAlchemy puis l'intégration des deux outils dans un projet complet.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Chapitre</th>
+<th>Contenu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chapitre 1</td>
+<td>Découverte de FastAPI et des Web Services</td>
+</tr>
+<tr>
+<td>Chapitre 2</td>
+<td>Implémenter des routes REST avec FastAPI</td>
+</tr>
+<tr>
+<td>Chapitre 3</td>
+<td>Sécurité, dépendances et déploiement FastAPI</td>
+</tr>
+<tr>
+<td>Chapitre 4</td>
+<td>SQLAlchemy — Modélisation et requêtes</td>
+</tr>
+<tr>
+<td>Chapitre 5</td>
+<td>SQLAlchemy avancé et intégration avec FastAPI</td>
+</tr>
+</tbody>
+</table></div>
+<p>La semaine se termine par un projet fil rouge : une API de gestion de catalogue (utilisateurs, articles, commandes) entièrement persistée avec SQLAlchemy, protégée par JWT, documentée via Swagger et conteneurisée dans Docker.</p>
+<h2>Organisation pédagogique</h2>
+<p>Chaque chapitre alterne apports théoriques et ateliers pratiques (environ trois quarts du temps de formation). Deux formats d'exercices sont proposés : des Travaux Pratiques guidés pas-à-pas pour consolider chaque notion, et des exercices ouverts (format Pro) pour les stagiaires qui souhaitent se confronter à un énoncé sans fil directeur.</p>
+<p>Chaque chapitre se conclut par un quiz de validation de dix questions. Une vérification concrète (état de l'API, requêtes HTTP fonctionnelles) clôt chaque journée.</p>
+<h2>Horaires</h2>
+<ul>
+<li>Lundi : 9h30 – 17h30</li>
+<li>Mardi à vendredi : 9h00 – 17h30</li>
+<li>Pause déjeuner : 12h30 – 13h30</li>
+<li>Deux pauses de 15 minutes sont prévues chaque jour, une le matin et une l'après-midi</li>
+</ul>
+<h2>Matériel et environnement</h2>
+<p>Un PC avec Python 3.11+ est disponible sur chaque poste. L'installation de l'environnement virtuel, de FastAPI, de SQLAlchemy et des outils associés se fait ensemble en atelier au démarrage du Chapitre 1. Postman (ou tout client HTTP équivalent) est également disponible pour tester les endpoints.</p>
+<h2>Évaluation</h2>
+<p>La formation délivre une <strong>attestation de fin de formation mentionnant le résultat des acquis</strong> (référence Dawan : PYT101931-F). Les quiz de fin de chapitre et les ateliers pratiques constituent les évaluations en cours de formation.</p></div>
+    </div>
+  </div>
+</div>
+
+<footer>Formateur Dawan — formation@dawan.fr</footer>
+
+<script>
+(function () {
+  const root = document.documentElement;
+  const stored = localStorage.getItem('dawan-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  updateToggleLabel();
+})();
+function updateToggleLabel() {
+  const current = document.documentElement.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.getElementById('theme-icon').textContent = current === 'dark' ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = current === 'dark' ? 'Sombre' : 'Clair';
+}
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('dawan-theme', next);
+  updateToggleLabel();
+}
+</script>
+</body>
+</html>

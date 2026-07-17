@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Support interactif de formation Python Avancé : FastAPI + ORM : 04 — SQLAlchemy — Modélisation et requêtes">
+<title>04 — SQLAlchemy — Modélisation et requêtes</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --primary: #f0883e; --primary2: #ffa657;
+  --success: #3fb950; --warning: #d29922; --danger: #f85149;
+  --text: #e6edf3; --text-muted: #8b949e; --code-bg: #010409; --radius: 10px;
+  --topbar-h: 3.25rem;
+}
+:root[data-theme="light"] {
+  --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+  --primary: #bc4c00; --primary2: #953800;
+  --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+  --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+    --primary: #bc4c00; --primary2: #953800;
+    --success: #1a7f37; --warning: #9a6700; --danger: #cf222e;
+    --text: #1f2328; --text-muted: #656d76; --code-bg: #f6f8fa;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.7; transition: background .2s, color .2s; }
+
+/* TOPBAR — fixe, ne bouge jamais au scroll */
+.topbar {
+  position: sticky; top: 0; z-index: 200; height: var(--topbar-h);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .9rem; padding: 0 1rem;
+}
+.topbar .badge {
+  flex: 0 0 auto; background: var(--primary); color: #0d1117;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.topbar a.chapter-title {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: .5rem;
+  text-decoration: none; color: var(--text); font-weight: 700; font-size: .92rem;
+  overflow: hidden;
+}
+.topbar a.chapter-title:hover { color: var(--primary); }
+.topbar a.chapter-title .num { color: var(--primary); flex: 0 0 auto; }
+.topbar a.chapter-title .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-links { flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; }
+.topbar-link {
+  white-space: nowrap; padding: .4rem .8rem; border: 1px solid var(--border); border-radius: 20px;
+  font-size: .8rem; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: all .2s;
+}
+.topbar-link:hover { color: var(--primary); border-color: var(--primary); }
+.theme-toggle {
+  flex: 0 0 auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: .4rem .7rem; border-radius: 20px; font-size: .8rem; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+}
+.theme-toggle:hover { border-color: var(--primary); }
+
+/* LAYOUT — sidebar gauche + contenu */
+.layout { display: flex; align-items: flex-start; }
+.sidebar {
+  flex: 0 0 280px; width: 280px;
+  position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem 1rem 2rem;
+}
+.objectifs {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .8rem 1rem; margin-bottom: 1.25rem;
+}
+.objectifs-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.objectifs ul { margin: .4rem 0 0 1.1rem; }
+.objectifs li { font-size: .82rem; color: var(--text-muted); margin-bottom: .3rem; line-height: 1.4; }
+.side-nav { display: flex; flex-direction: column; gap: .1rem; }
+.side-nav button {
+  text-align: left; background: none; border: none; border-left: 3px solid transparent;
+  color: var(--text-muted); padding: .55rem .7rem; font-size: .87rem; font-weight: 500;
+  cursor: pointer; border-radius: 0 6px 6px 0; transition: all .15s;
+}
+.side-nav button:hover { color: var(--text); background: var(--surface2); }
+.side-nav button.active { color: var(--primary); border-left-color: var(--primary); background: var(--surface2); font-weight: 600; }
+.side-nav-sep { height: 1px; background: var(--border); margin: .6rem 0; }
+
+.content { flex: 1 1 auto; min-width: 0; }
+.tab-content { display: none; padding: 2rem 2.5rem 4rem; max-width: 1100px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* SECTIONS */
+h2 { font-size: 1.25rem; color: var(--primary2); margin: 1.8rem 0 .8rem; border-left: 3px solid var(--primary); padding-left: .75rem; }
+h3 { font-size: 1.05rem; color: var(--text); margin: 1.4rem 0 .6rem; }
+p { margin-bottom: .9rem; }
+ul, ol { padding-left: 1.4rem; margin-bottom: .9rem; }
+li { margin-bottom: .35rem; }
+
+/* RESSOURCES — liste sous forme de cartes plutôt que de puces */
+#tab-ressources ul { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: .5rem; }
+#tab-ressources li {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .75rem 1rem; margin-bottom: 0;
+}
+#tab-ressources li a { color: var(--primary2); font-weight: 600; text-decoration: none; }
+#tab-ressources li a:hover { text-decoration: underline; }
+
+/* AIDE — divulgation progressive pas-à-pas */
+details.aide { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+details.aide summary {
+  cursor: pointer; padding: .8rem 1.1rem; font-weight: 600; color: var(--primary);
+  list-style: none; display: flex; align-items: center; gap: .5rem;
+}
+details.aide summary::-webkit-details-marker { display: none; }
+details.aide summary::before { content: "▶"; font-size: .7rem; transition: transform .15s; }
+details.aide[open] summary::before { transform: rotate(90deg); }
+details.aide .aide-body { padding: 0 1.1rem 1.1rem; border-top: 1px solid var(--border); margin-top: .2rem; padding-top: 1rem; }
+img { max-width: 100%; height: auto; display: block; margin: 1rem auto; }
+
+/* EXERCICE — un bloc par atelier, avec son aide pas-à-pas attachée juste en dessous */
+.exercice { padding: 1.3rem 0; border-top: 1px solid var(--border); }
+.exercice:first-of-type { border-top: none; padding-top: 0; }
+.exercice h3 { margin: 0 0 .8rem; color: var(--primary2); }
+
+/* CALLOUTS */
+.callout { border-radius: var(--radius); padding: .9rem 1.1rem; margin: 1.2rem 0; border-left: 4px solid; background: var(--surface2); }
+.callout.note   { border-color: var(--primary); }
+.callout.tip    { border-color: var(--success); }
+.callout.warn   { border-color: var(--warning); }
+.callout.danger { border-color: var(--danger); }
+.callout p:last-child { margin-bottom: 0; }
+.callout-title { font-weight: 700; font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .4rem; }
+.callout.note   .callout-title { color: var(--primary); }
+.callout.tip    .callout-title { color: var(--success); }
+.callout.warn   .callout-title { color: var(--warning); }
+.callout.danger .callout-title { color: var(--danger); }
+
+/* TABLES */
+.table-wrap { overflow-x: auto; margin: 1rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th { background: var(--surface2); color: var(--primary2); text-align: left; padding: .6rem .9rem; font-weight: 600; border: 1px solid var(--border); }
+td { padding: .55rem .9rem; border: 1px solid var(--border); vertical-align: top; }
+tr:hover td { background: var(--surface2); }
+
+/* CODE */
+.code-block { position: relative; margin: 1rem 0; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1rem 1rem 1.2rem; overflow-x: auto; }
+code { font-family: 'Consolas', 'Cascadia Code', monospace; font-size: .88rem; color: var(--primary2); }
+p code, li code, td code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .05rem .35rem; }
+.copy-btn {
+  position: absolute; top: .5rem; right: .5rem;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  padding: .25rem .6rem; font-size: .75rem; border-radius: 5px; cursor: pointer; transition: all .2s;
+}
+.copy-btn:hover { background: var(--primary); color: #0d1117; }
+.copy-btn.copied { background: var(--success); color: #0d1117; }
+
+/* QUIZ */
+.quiz-question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; margin-bottom: 1.2rem; }
+.quiz-question h4 { color: var(--primary2); margin-bottom: .9rem; font-size: .98rem; }
+.quiz-options { display: flex; flex-direction: column; gap: .5rem; }
+.quiz-option {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: .6rem .9rem; cursor: pointer;
+  font-size: .9rem; transition: all .2s; text-align: left; color: var(--text);
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--primary); }
+.quiz-option.correct { border-color: var(--success); color: var(--success); }
+.quiz-option.wrong   { border-color: var(--danger);  color: var(--danger);  }
+.quiz-option:disabled { cursor: default; }
+.quiz-feedback { margin-top: .6rem; font-size: .87rem; color: var(--text-muted); font-style: italic; }
+.quiz-score {
+  background: var(--surface2); border: 1px solid var(--primary);
+  border-radius: var(--radius); padding: 1.5rem; text-align: center; margin-top: 1.5rem; display: none;
+}
+.quiz-score .score-num { font-size: 2.5rem; font-weight: 700; color: var(--primary); }
+.quiz-score p { color: var(--text-muted); margin-top: .4rem; }
+.btn-restart { background: var(--primary); color: #0d1117; border: none; padding: .6rem 1.4rem; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 1rem; font-size: .9rem; }
+.btn-restart:hover { background: var(--primary2); }
+
+/* RESPONSIVE — sidebar devient une barre horizontale sous 900px */
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    position: static; width: 100%; height: auto; max-height: 40vh;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .side-nav { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: .3rem; }
+  .side-nav button { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; border-radius: 6px 6px 0 0; }
+  .side-nav button.active { border-left-color: transparent; border-bottom-color: var(--primary); }
+  .side-nav-sep { display: none; }
+  .tab-content { padding: 1.5rem 1.2rem 3rem; }
+  .topbar a.chapter-title { font-size: .82rem; }
+}
+</style>
+<link rel="stylesheet" href="assets/course-common.css">
+<script src="assets/course-common.js" defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="badge">Python Avancé : FastAPI + ORM</span>
+  <a class="chapter-title" href="index.html" title="Retour à l'accueil de la formation">
+    <span class="num">04</span><span class="txt">SQLAlchemy — Modélisation et requêtes</span>
+  </a>
+  <div class="topbar-links">
+    <a href="annexes.html" class="topbar-link">Annexes ↗</a>
+    <a class="topbar-link" href="index.html">Sommaire</a>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Basculer entre thème clair et sombre">
+      <span id="theme-icon">🌙</span> <span id="theme-label">Sombre</span>
+    </button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="objectifs"><span class="objectifs-label">Objectifs</span><ul><li>Expliquer le principe des ORM et le positionnement de SQLAlchemy dans l&#x27;écosystème Python</li><li>Configurer un Engine et une Session SQLAlchemy pour se connecter à une base de données</li><li>Définir des modèles ORM déclaratifs avec colonnes, types, contraintes et clés étrangères</li><li>Modéliser les trois types de relations (1-à-n, 1-à-1, n-à-n) avec SQLAlchemy</li><li>Gérer les migrations de schéma avec Alembic</li><li>Écrire des requêtes CRUD de base avec la Session SQLAlchemy ORM</li></ul></div>
+    <nav class="side-nav" id="main-nav">
+      <button class="active" onclick="showTab('objectifs-du-chapitre')">Objectifs du chapitre</button>
+  <button class="" onclick="showTab('principe-des-orm-et-positionnement-de-sqlalchemy')">Principe des ORM et positionnement de SQLAlchemy</button>
+  <button class="" onclick="showTab('installation-et-configuration')">Installation et configuration</button>
+  <button class="" onclick="showTab('definir-des-modeles-orm')">Définir des modèles ORM</button>
+  <button class="" onclick="showTab('relations-entre-modeles')">Relations entre modèles</button>
+  <button class="" onclick="showTab('creer-les-tables-base-metadata')">Créer les tables — Base.metadata</button>
+  <button class="" onclick="showTab('migrations-avec-alembic')">Migrations avec Alembic</button>
+  <button class="" onclick="showTab('requetes-crud-avec-sqlalchemy-orm-2-0')">Requêtes CRUD avec SQLAlchemy ORM 2.0</button>
+  <button class="" onclick="showTab('patterns-de-requete-courants')">Patterns de requête courants</button>
+  <button class="" onclick="showTab('travaux-pratiques')">Travaux pratiques</button>
+  <button class="" onclick="showTab('quiz')">Quiz</button>
+    </nav>
+  </aside>
+  <div class="content">
+    <div id="tab-objectifs-du-chapitre" class="tab-content active">
+<p>À l'issue de ce chapitre, chaque stagiaire est capable de :</p>
+<ul>
+<li>Expliquer ce qu'est un ORM et en quoi SQLAlchemy diffère de SQLObject, Peewee ou Django ORM</li>
+<li>Distinguer SQLAlchemy Core (SQL Expression Language) et SQLAlchemy ORM et choisir le bon niveau d'abstraction</li>
+<li>Configurer un <code>Engine</code> et une <code>Session</code> SQLAlchemy pour SQLite, PostgreSQL et MySQL</li>
+<li>Créer des modèles ORM avec la base déclarative moderne (<code>DeclarativeBase</code>)</li>
+<li>Définir des colonnes avec les types SQLAlchemy, des contraintes et des valeurs par défaut</li>
+<li>Créer des relations <code>relationship()</code> avec <code>ForeignKey</code> pour les trois types d'associations</li>
+<li>Initialiser et exécuter des migrations de schéma avec Alembic</li>
+<li>Écrire des requêtes de base (select, insert, update, delete, filtres) avec la Session 2.0</li>
+</ul>
+</div>
+
+<div id="tab-principe-des-orm-et-positionnement-de-sqlalchemy" class="tab-content">
+<h3>Le problème de l'impedance objet-relationnel</h3>
+<p>Les bases de données relationnelles stockent des données dans des tables avec des lignes et des colonnes. Les programmes Python travaillent avec des objets, des attributs et des méthodes. Ce décalage entre les deux paradigmes — le modèle relationnel et le modèle objet — est appelé <strong>impedance objet-relationnel</strong> (Object-Relational Impedance Mismatch).</p>
+<p>Sans ORM, accéder à une base de données en Python implique d'écrire du SQL brut, de gérer manuellement les connexions, de convertir les lignes de résultats (<code>tuples</code>) en objets Python, et de reconstruire les relations entre tables à la main. Pour des opérations ponctuelles, le SQL brut est parfait. Pour une application qui manipule des centaines de tables avec des relations complexes, cette approche devient rapidement source d'erreurs et de duplication.</p>
+<p>Un ORM (Object-Relational Mapper) est une bibliothèque qui établit une correspondance (mapping) entre les classes Python et les tables de la base de données, et entre les instances de ces classes et les lignes. L'ORM génère et exécute le SQL à la place du développeur, offre une API orientée objet pour les requêtes, et gère les relations entre entités comme des associations entre objets Python.</p>
+<div class="callout note"><div class="callout-title">Analogie</div><p>L'ORM est un traducteur simultané entre deux langues : le Python côté programme, et le SQL côté base de données. Vous parlez Python, il traduit en SQL — et vous retranscrit les résultats SQL sous forme d'objets Python.</p></div>
+<h3>L'écosystème ORM Python</h3>
+<p>Plusieurs ORMs coexistent dans l'écosystème Python. Le programme officiel Dawan cite SQLObject, SQLAlchemy, Peewee et PonyORM. Voici une comparaison rapide :</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>ORM</th>
+<th>Points forts</th>
+<th>Points faibles</th>
+<th>Cas d'usage typique</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SQLAlchemy</strong></td>
+<td>Complet, flexible, SQL expressif, async, Alembic</td>
+<td>Courbe d'apprentissage steep</td>
+<td>Applications d'entreprise, FastAPI</td>
+</tr>
+<tr>
+<td><strong>Peewee</strong></td>
+<td>Simple, léger, batteries incluses</td>
+<td>Moins performant sur de gros volumes</td>
+<td>Projets petits/moyens, prototypes</td>
+</tr>
+<tr>
+<td><strong>Django ORM</strong></td>
+<td>Intégré à Django, admin automatique</td>
+<td>Couplé à Django</td>
+<td>Applications Django uniquement</td>
+</tr>
+<tr>
+<td><strong>PonyORM</strong></td>
+<td>Syntaxe Python naturelle (générateurs)</td>
+<td>Communauté plus petite</td>
+<td>Projets qui préfèrent la syntaxe objet</td>
+</tr>
+<tr>
+<td><strong>Tortoise ORM</strong></td>
+<td>Async natif, API proche Django</td>
+<td>Moins mature</td>
+<td>FastAPI avec full-async</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>SQLAlchemy</strong> est le choix de cette formation car c'est la bibliothèque la plus utilisée et la plus puissante de l'écosystème Python, et celle qui s'intègre le mieux avec FastAPI via son mode asynchrone.</p>
+<h3>SQLAlchemy Core vs SQLAlchemy ORM</h3>
+<p>SQLAlchemy offre deux niveaux d'abstraction distincts qui peuvent coexister dans le même projet.</p>
+<p><strong>SQLAlchemy Core</strong> (SQL Expression Language) permet de construire des expressions SQL en Python sous forme d'objets. Il génère du SQL portable (fonctionne avec SQLite, PostgreSQL, MySQL, Oracle…) mais reste proche du SQL — on manipule des tables et des colonnes, pas des classes et des attributs.</p>
+<p><strong>SQLAlchemy ORM</strong> ajoute au-dessus de Core la couche de mapping objet-relationnel : les classes Python correspondent à des tables, les instances à des lignes, les attributs à des colonnes. La Session gère le cycle de vie des objets (nouveau, persistant, détaché, supprimé) et le suivi des modifications (Unit of Work).</p>
+<div class="code-block"><pre><code class="language-python"># SQLAlchemy Core — proche du SQL
+from sqlalchemy import select, text
+result = conn.execute(select(articles_table).where(articles_table.c.publie == True))
+
+# SQLAlchemy ORM — orienté objet
+session.query(Article).filter(Article.publie == True).all()  # Style 1.x (legacy)
+session.execute(select(Article).where(Article.publie == True)).scalars().all()  # Style 2.0
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Cette formation utilise <strong>SQLAlchemy ORM avec la syntaxe 2.0</strong> — la syntaxe moderne depuis SQLAlchemy 2.0 (2023), plus cohérente entre les versions synchrone et asynchrone.</p>
+</div>
+
+<div id="tab-installation-et-configuration" class="tab-content">
+<h3>Installation</h3>
+<div class="code-block"><pre><code class="language-bash">pip install &quot;sqlalchemy[asyncio]&quot; alembic psycopg2-binary
+# sqlalchemy[asyncio] inclut greenlet pour le support async
+# alembic pour les migrations
+# psycopg2-binary pour PostgreSQL (en production, utiliser psycopg2 sans -binary)
+
+# Pour SQLite (inclus dans Python) : aucune dépendance supplémentaire
+# Pour MySQL : pip install pymysql
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Engine — connexion à la base de données</h3>
+<p>L'<code>Engine</code> est le point d'entrée de SQLAlchemy. Il encapsule la chaîne de connexion (connection string) et gère un pool de connexions.</p>
+<div class="code-block"><pre><code class="language-python"># database.py
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+
+# SQLite (développement)
+DATABASE_URL = &quot;sqlite:///./app.db&quot;
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={&quot;check_same_thread&quot;: False},  # Requis pour SQLite + multi-thread
+)
+
+# PostgreSQL (production)
+# DATABASE_URL = &quot;postgresql://user:password@localhost:5432/db_name&quot;
+# engine = create_engine(DATABASE_URL, pool_size=10, max_overflow=20)
+
+# MySQL
+# DATABASE_URL = &quot;mysql+pymysql://user:password@localhost:3306/db_name&quot;
+# engine = create_engine(DATABASE_URL)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout note"><div class="callout-title">Format de l'URL de connexion SQLAlchemy</div><p><code>dialect+driver://username:password@host:port/database</code></p>
+<ul>
+<li>SQLite : <code>sqlite:///./app.db</code> (relatif) ou <code>sqlite:////abs/path/app.db</code></li>
+<li>PostgreSQL : <code>postgresql://user:pwd@localhost:5432/dbname</code></li>
+<li>PostgreSQL (async) : <code>postgresql+asyncpg://user:pwd@localhost:5432/dbname</code></li>
+</ul></div>
+<h3>Session — cycle de vie des objets</h3>
+<p>La <code>Session</code> est l'objet central de SQLAlchemy ORM. Elle représente une "conversation" avec la base de données — un périmètre transactionnel dans lequel les objets sont suivis, les modifications détectées et les requêtes exécutées.</p>
+<div class="code-block"><pre><code class="language-python"># database.py (suite)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Utilisation manuelle de la session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db          # Fournit la session
+    finally:
+        db.close()        # Toujours fermer même en cas d'exception
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout warn"><div class="callout-title">Ne jamais partager une Session entre threads</div><p>Une <code>Session</code> n'est pas thread-safe. Chaque requête HTTP doit avoir sa propre instance de Session, créée en début de requête et fermée à la fin. La session par requête est implémentée dans FastAPI via <code>Depends(get_db)</code> au Chapitre 5.</p></div>
+<h3>Base déclarative</h3>
+<p>La <code>DeclarativeBase</code> est la classe de base dont héritent tous les modèles ORM. Elle maintient le registre des classes mappées et génère les métadonnées de tables.</p>
+<div class="code-block"><pre><code class="language-python"># database.py (suite)
+class Base(DeclarativeBase):
+    pass
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Depuis SQLAlchemy 2.0, <code>DeclarativeBase</code> remplace l'ancien <code>declarative_base()</code> (toujours supporté mais considéré legacy). <code>Base.metadata</code> contient toutes les informations sur les tables définies dans les modèles.</p>
+</div>
+
+<div id="tab-definir-des-modeles-orm" class="tab-content">
+<h3>Premier modèle — Utilisateur</h3>
+<div class="code-block"><pre><code class="language-python"># models.py
+from sqlalchemy import String, Boolean, Integer, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column
+from database import Base
+from datetime import datetime
+
+class Utilisateur(Base):
+    __tablename__ = &quot;utilisateurs&quot;
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(200), nullable=False)
+    est_actif: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    est_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    date_creation: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+
+    def __repr__(self) -&gt; str:
+        return f&quot;&lt;Utilisateur(id={self.id}, username='{self.username}')&gt;&quot;
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>La syntaxe <code>Mapped[type] = mapped_column(...)</code> est la syntaxe moderne SQLAlchemy 2.0. Elle combine l'annotation de type Python (utilisée pour la vérification statique et la documentation) avec la définition de colonne SQLAlchemy.</p>
+<p><strong>Attributs clés de <code>mapped_column</code> :</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Description</th>
+<th>Exemple</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>primary_key=True</code></td>
+<td>Clé primaire</td>
+<td><code>id</code> auto-incrémenté</td>
+</tr>
+<tr>
+<td><code>unique=True</code></td>
+<td>Contrainte d'unicité</td>
+<td><code>username</code>, <code>email</code></td>
+</tr>
+<tr>
+<td><code>nullable=False</code></td>
+<td>Valeur obligatoire (NOT NULL)</td>
+<td>Champs requis</td>
+</tr>
+<tr>
+<td><code>index=True</code></td>
+<td>Index sur la colonne</td>
+<td>Colonnes souvent filtrées</td>
+</tr>
+<tr>
+<td><code>default=...</code></td>
+<td>Valeur par défaut Python</td>
+<td><code>default=True</code></td>
+</tr>
+<tr>
+<td><code>server_default=...</code></td>
+<td>Valeur par défaut SQL</td>
+<td><code>server_default="NOW()"</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>Types de colonnes SQLAlchemy</h3>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import (
+    Integer,          # Entier 32 bits
+    BigInteger,       # Entier 64 bits
+    Float,            # Flottant
+    Numeric,          # Décimal précis (argent)
+    String,           # VARCHAR(n)
+    Text,             # TEXT illimité
+    Boolean,          # BOOLEAN
+    Date,             # DATE
+    DateTime,         # DATETIME / TIMESTAMP
+    JSON,             # JSON (PostgreSQL, MySQL 5.7+)
+    Enum,             # ENUM (valeurs prédéfinies)
+    ForeignKey,       # Clé étrangère
+)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout tip"><div class="callout-title">Utiliser <code>Numeric</code> pour les montants monétaires</div><p><code>Float</code> accumule des erreurs d'arrondi liées à la représentation binaire des flottants. Pour les montants en euros ou dollars, toujours utiliser <code>Numeric(precision=10, scale=2)</code> — stocké en décimal exact dans la base.</p></div>
+<h3>Modèle Article avec clé étrangère</h3>
+<div class="code-block"><pre><code class="language-python"># models.py (suite)
+from sqlalchemy import ForeignKey, Text
+from sqlalchemy.orm import relationship
+
+class Article(Base):
+    __tablename__ = &quot;articles&quot;
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    titre: Mapped[str] = mapped_column(String(200), nullable=False)
+    contenu: Mapped[str] = mapped_column(Text, nullable=False)
+    publie: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    date_creation: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    auteur_id: Mapped[int] = mapped_column(Integer, ForeignKey(&quot;utilisateurs.id&quot;), nullable=False)
+
+    # Relation vers l'auteur (côté &quot;many&quot; de la relation 1-à-n)
+    auteur: Mapped[&quot;Utilisateur&quot;] = relationship(&quot;Utilisateur&quot;, back_populates=&quot;articles&quot;)
+
+    def __repr__(self) -&gt; str:
+        return f&quot;&lt;Article(id={self.id}, titre='{self.titre[:30]}')&gt;&quot;
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>La <code>ForeignKey("utilisateurs.id")</code> est une contrainte SQL qui référence la colonne <code>id</code> de la table <code>utilisateurs</code>. La <code>relationship("Utilisateur", back_populates="articles")</code> est une définition côté ORM — elle ne crée pas de colonne supplémentaire, mais permet d'accéder à l'auteur d'un article via <code>article.auteur</code> (un objet Python <code>Utilisateur</code>).</p>
+</div>
+
+<div id="tab-relations-entre-modeles" class="tab-content">
+<h3>Relation 1-à-n (One-to-Many)</h3>
+<p>La relation la plus courante : un utilisateur peut avoir plusieurs articles, un article appartient à un seul utilisateur.</p>
+<div class="code-block"><pre><code class="language-python"># Dans Utilisateur : ajouter le côté &quot;one&quot;
+class Utilisateur(Base):
+    ...
+    articles: Mapped[list[&quot;Article&quot;]] = relationship(
+        &quot;Article&quot;,
+        back_populates=&quot;auteur&quot;,
+        cascade=&quot;all, delete-orphan&quot;,  # Supprime les articles quand l'auteur est supprimé
+    )
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># Dans Article : côté &quot;many&quot; déjà défini ci-dessus
+class Article(Base):
+    ...
+    auteur_id: Mapped[int] = mapped_column(ForeignKey(&quot;utilisateurs.id&quot;))
+    auteur: Mapped[&quot;Utilisateur&quot;] = relationship(&quot;Utilisateur&quot;, back_populates=&quot;articles&quot;)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># Utilisation
+user = session.get(Utilisateur, 1)
+print(user.articles)       # Liste des articles de cet utilisateur
+article = user.articles[0]
+print(article.auteur)      # Retourne l'objet Utilisateur correspondant
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Relation 1-à-1 (One-to-One)</h3>
+<p>Un utilisateur possède un et un seul profil, un profil appartient à un et un seul utilisateur.</p>
+<div class="code-block"><pre><code class="language-python">class ProfilUtilisateur(Base):
+    __tablename__ = &quot;profils_utilisateurs&quot;
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    utilisateur_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey(&quot;utilisateurs.id&quot;),
+        unique=True,       # unique=True garantit le 1-à-1
+        nullable=False,
+    )
+    bio: Mapped[str] = mapped_column(Text, default=&quot;&quot;)
+    avatar_url: Mapped[str] = mapped_column(String(500), default=&quot;&quot;)
+
+    utilisateur: Mapped[&quot;Utilisateur&quot;] = relationship(
+        &quot;Utilisateur&quot;, back_populates=&quot;profil&quot;
+    )
+
+# Dans Utilisateur
+class Utilisateur(Base):
+    ...
+    profil: Mapped[Optional[&quot;ProfilUtilisateur&quot;]] = relationship(
+        &quot;ProfilUtilisateur&quot;,
+        back_populates=&quot;utilisateur&quot;,
+        uselist=False,      # uselist=False → attribut unique, pas une liste
+    )
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Relation n-à-n (Many-to-Many)</h3>
+<p>Un article peut avoir plusieurs tags, un tag peut être associé à plusieurs articles. La relation n-à-n nécessite une <strong>table d'association</strong> (table pivot).</p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import Table, Column
+
+# Table d'association — définie avec Table() car elle n'a pas de modèle ORM propre
+articles_tags = Table(
+    &quot;articles_tags&quot;,
+    Base.metadata,
+    Column(&quot;article_id&quot;, Integer, ForeignKey(&quot;articles.id&quot;), primary_key=True),
+    Column(&quot;tag_id&quot;, Integer, ForeignKey(&quot;tags.id&quot;), primary_key=True),
+)
+
+class Tag(Base):
+    __tablename__ = &quot;tags&quot;
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nom: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+
+    articles: Mapped[list[&quot;Article&quot;]] = relationship(
+        &quot;Article&quot;, secondary=articles_tags, back_populates=&quot;tags&quot;
+    )
+
+# Dans Article : ajouter la relation
+class Article(Base):
+    ...
+    tags: Mapped[list[&quot;Tag&quot;]] = relationship(
+        &quot;Tag&quot;, secondary=articles_tags, back_populates=&quot;articles&quot;
+    )
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># Utilisation
+article = session.get(Article, 1)
+print(article.tags)       # Liste de Tag
+tag = session.get(Tag, 1)
+print(tag.articles)       # Liste d'Article
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><img alt="Relations entre modèles SQLAlchemy — 1-à-n, 1-à-1 et n-à-n" src="../08-images/ch04-orm-relations.svg" /></p>
+<p>Le schéma ci-dessus représente les trois types de relations avec leurs clés étrangères et tables d'association : Utilisateur ↔ Article (1-à-n), Utilisateur ↔ Profil (1-à-1), Article ↔ Tag via la table articles_tags (n-à-n).</p>
+</div>
+
+<div id="tab-creer-les-tables-base-metadata" class="tab-content">
+<div class="code-block"><pre><code class="language-python"># Créer toutes les tables définies dans les modèles importés
+from database import engine, Base
+import models  # Nécessaire pour que les modèles soient enregistrés dans Base.metadata
+
+Base.metadata.create_all(bind=engine)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout warn"><div class="callout-title"><code>create_all</code> en développement seulement</div><p><code>Base.metadata.create_all()</code> est pratique pour créer les tables au démarrage lors d'un prototype ou d'un test. En production, utiliser exclusivement Alembic pour gérer les migrations — <code>create_all</code> ne gère pas les modifications de schéma (ajout de colonne, modification de contrainte).</p></div>
+</div>
+
+<div id="tab-migrations-avec-alembic" class="tab-content">
+<h3>Initialiser Alembic</h3>
+<div class="code-block"><pre><code class="language-bash"># Dans le dossier du projet
+alembic init alembic
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Alembic crée :</p>
+<div class="code-block"><pre><code>alembic/
+├── env.py           ← Point d'entrée des migrations
+├── script.py.mako   ← Template des fichiers de migration
+└── versions/        ← Fichiers de migration générés
+alembic.ini          ← Configuration Alembic
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># alembic/env.py — modifications à apporter
+from database import Base
+from models import Utilisateur, Article, Tag  # Importer tous les modèles
+
+target_metadata = Base.metadata  # Pointer vers les métadonnées des modèles
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-ini"># alembic.ini — configurer l'URL de la base de données
+sqlalchemy.url = sqlite:///./app.db
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Créer et appliquer une migration</h3>
+<div class="code-block"><pre><code class="language-bash"># Générer une migration automatiquement (compare les modèles au schéma actuel)
+alembic revision --autogenerate -m &quot;Création des tables initiales&quot;
+# Crée alembic/versions/xxxx_création_des_tables_initiales.py
+
+# Appliquer les migrations en attente
+alembic upgrade head
+
+# Voir l'historique des migrations
+alembic history
+
+# Revenir à la migration précédente
+alembic downgrade -1
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-python"># Exemple de fichier de migration généré par --autogenerate
+def upgrade() -&gt; None:
+    op.create_table(
+        &quot;utilisateurs&quot;,
+        sa.Column(&quot;id&quot;, sa.Integer(), primary_key=True),
+        sa.Column(&quot;username&quot;, sa.String(50), nullable=False, unique=True),
+        sa.Column(&quot;email&quot;, sa.String(200), nullable=False, unique=True),
+        # ...
+    )
+
+def downgrade() -&gt; None:
+    op.drop_table(&quot;utilisateurs&quot;)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout tip"><div class="callout-title">Versionner les migrations</div><p>Les fichiers de migration dans <code>alembic/versions/</code> doivent être versionnés avec Git — ce sont les contrats de schéma de l'application. Les revues de code incluent la lecture des migrations pour s'assurer qu'elles sont réversibles.</p></div>
+</div>
+
+<div id="tab-requetes-crud-avec-sqlalchemy-orm-2-0" class="tab-content">
+<h3>Créer des enregistrements (INSERT)</h3>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy.orm import Session
+from models import Utilisateur, Article
+from database import SessionLocal
+
+db = SessionLocal()
+
+# Créer un utilisateur
+nouvel_utilisateur = Utilisateur(
+    username=&quot;charlie&quot;,
+    email=&quot;charlie@exemple.com&quot;,
+    hashed_password=&quot;$2b$12$...&quot;,
+    est_admin=False,
+)
+db.add(nouvel_utilisateur)
+db.commit()
+db.refresh(nouvel_utilisateur)  # Recharge l'objet depuis la DB (id assigné)
+print(nouvel_utilisateur.id)    # 1 (ou l'ID auto-généré)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="callout note"><div class="callout-title"><code>db.commit()</code> puis <code>db.refresh()</code></div><p>Après <code>commit()</code>, les champs générés par la base (id auto-incrémenté, <code>default=func.now()</code>) sont assignés dans la DB mais pas encore mis à jour dans l'objet Python. <code>db.refresh(objet)</code> recharge l'objet depuis la DB pour synchroniser les valeurs générées.</p></div>
+<h3>Lire des enregistrements (SELECT)</h3>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import select
+
+# Lecture par clé primaire — retourne None si inexistant
+user = db.get(Utilisateur, 1)
+
+# SELECT avec filtre (SQLAlchemy 2.0)
+stmt = select(Utilisateur).where(Utilisateur.username == &quot;charlie&quot;)
+user = db.execute(stmt).scalars().first()
+
+# Lister tous les utilisateurs actifs, triés par username
+stmt = (
+    select(Utilisateur)
+    .where(Utilisateur.est_actif == True)
+    .order_by(Utilisateur.username)
+    .limit(10)
+    .offset(0)
+)
+utilisateurs = db.execute(stmt).scalars().all()
+
+# Compter
+from sqlalchemy import func
+stmt = select(func.count()).select_from(Utilisateur).where(Utilisateur.est_actif == True)
+nb = db.execute(stmt).scalar()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Modifier des enregistrements (UPDATE)</h3>
+<div class="code-block"><pre><code class="language-python"># Charger l'objet, modifier ses attributs, commit
+user = db.get(Utilisateur, 1)
+if user:
+    user.email = &quot;nouvel_email@exemple.com&quot;
+    user.est_actif = False
+    db.commit()
+    db.refresh(user)
+
+# UPDATE en masse avec SQLAlchemy 2.0
+from sqlalchemy import update
+stmt = (
+    update(Utilisateur)
+    .where(Utilisateur.est_actif == False)
+    .values(est_admin=False)
+)
+db.execute(stmt)
+db.commit()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Supprimer des enregistrements (DELETE)</h3>
+<div class="code-block"><pre><code class="language-python"># Supprimer un objet chargé
+user = db.get(Utilisateur, 1)
+if user:
+    db.delete(user)
+    db.commit()
+
+# DELETE en masse
+from sqlalchemy import delete
+stmt = delete(Utilisateur).where(Utilisateur.est_actif == False)
+db.execute(stmt)
+db.commit()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Filtres courants</h3>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import and_, or_, not_, like, in_
+
+# AND implicite (plusieurs where enchaînés)
+stmt = select(Article).where(Article.publie == True).where(Article.auteur_id == 1)
+
+# OR explicite
+stmt = select(Utilisateur).where(
+    or_(Utilisateur.username == &quot;alice&quot;, Utilisateur.est_admin == True)
+)
+
+# LIKE (recherche textuelle)
+stmt = select(Article).where(Article.titre.like(&quot;%FastAPI%&quot;))
+
+# IN
+stmt = select(Article).where(Article.auteur_id.in_([1, 2, 3]))
+
+# IS NULL
+stmt = select(Article).where(Article.date_publication.is_(None))
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><img alt="Cycle de vie d'un objet SQLAlchemy dans la Session" src="../08-images/ch04-session-lifecycle.svg" /></p>
+<p>Le schéma ci-dessus illustre les quatre états d'un objet SQLAlchemy dans une Session : <strong>transient</strong> (créé mais pas ajouté), <strong>pending</strong> (ajouté mais pas encore commité), <strong>persistent</strong> (commité, suivi par la session), <strong>detached</strong> (session fermée, l'objet existe mais n'est plus suivi). Les transitions entre ces états correspondent aux opérations <code>add()</code>, <code>commit()</code>, <code>close()</code>, <code>expunge()</code>.</p>
+</div>
+
+<div id="tab-patterns-de-requete-courants" class="tab-content">
+<h3>Requête avec jointure</h3>
+<div class="code-block"><pre><code class="language-python"># Récupérer les articles avec les informations de leur auteur
+stmt = (
+    select(Article, Utilisateur)
+    .join(Utilisateur, Article.auteur_id == Utilisateur.id)
+    .where(Article.publie == True)
+    .order_by(Article.date_creation.desc())
+)
+resultats = db.execute(stmt).all()
+for article, auteur in resultats:
+    print(f&quot;{article.titre} — par {auteur.username}&quot;)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Requête avec agrégation</h3>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import func
+
+# Nombre d'articles par auteur
+stmt = (
+    select(Utilisateur.username, func.count(Article.id).label(&quot;nb_articles&quot;))
+    .join(Article, Article.auteur_id == Utilisateur.id)
+    .group_by(Utilisateur.username)
+    .order_by(func.count(Article.id).desc())
+)
+resultats = db.execute(stmt).all()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<h3>Accéder aux relations chargées</h3>
+<div class="code-block"><pre><code class="language-python">user = db.get(Utilisateur, 1)
+# Attention : accéder à user.articles déclenche un SELECT supplémentaire (lazy loading)
+# Ce comportement est détaillé au Chapitre 5
+for article in user.articles:
+    print(article.titre)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+</div>
+
+<div id="tab-travaux-pratiques" class="tab-content">
+<div class="exercice">
+<h3>Exercice 1 — Modéliser un domaine avec SQLAlchemy</h3>
+<p>Vous devez modéliser le schéma de données d'une plateforme de cours en ligne.</p>
+<p><strong>Entités à modéliser :</strong></p>
+<ul>
+<li><code>Formateur</code> : id, nom, email (unique), specialite, date_inscription</li>
+<li><code>Cours</code> : id, titre, description, prix (décimal exact 10,2), duree_heures, publie (bool), date_creation, formateur_id (FK)</li>
+<li><code>Stagiaire</code> : id, nom, email (unique), date_inscription</li>
+<li><code>Inscription</code> : table d'association n-à-n entre Cours et Stagiaire, avec <code>date_inscription</code> et <code>note</code> (entier 0-20, optionnel)</li>
+</ul>
+<p><strong>Travail à réaliser :</strong></p>
+<ol>
+<li>Créer <code>models.py</code> avec les quatre modèles SQLAlchemy 2.0</li>
+<li>Configurer <code>database.py</code> avec un Engine SQLite et une Session</li>
+<li>Créer les tables avec <code>Base.metadata.create_all()</code></li>
+<li>Initialiser Alembic et générer la migration initiale</li>
+<li>Vérifier le schéma créé avec un outil SQLite (DB Browser for SQLite ou la commande <code>sqlite3</code>)</li>
+</ol>
+<p><strong>Critères de validation :</strong></p>
+<ul>
+<li><code>alembic upgrade head</code> s'exécute sans erreur</li>
+<li>Toutes les relations <code>relationship()</code> sont définies et accessibles des deux côtés</li>
+<li><code>Numeric(10, 2)</code> est utilisé pour le prix</li>
+<li>La table <code>Inscription</code> est une table d'association avec des colonnes supplémentaires (<code>date_inscription</code>, <code>note</code>)</li>
+</ul>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p><strong>Étape 1 — Créer le projet et installer les dépendances</strong></p>
+<div class="code-block"><pre><code class="language-bash">mkdir plateforme-cours ; cd plateforme-cours
+python -m venv .venv ; .venv\Scripts\Activate.ps1
+pip install &quot;sqlalchemy[asyncio]&quot; alembic
+pip freeze &gt; requirements.txt
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 2 — Créer <code>database.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+
+DATABASE_URL = &quot;sqlite:///./cours.db&quot;
+engine = create_engine(DATABASE_URL, connect_args={&quot;check_same_thread&quot;: False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+class Base(DeclarativeBase):
+    pass
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 3 — Créer <code>models.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python">from sqlalchemy import String, Boolean, Integer, Numeric, Text, DateTime, ForeignKey, Table, Column, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from database import Base
+from datetime import datetime
+from typing import Optional
+
+# Table d'association n-à-n avec colonnes supplémentaires
+class Inscription(Base):
+    __tablename__ = &quot;inscriptions&quot;
+
+    cours_id: Mapped[int] = mapped_column(Integer, ForeignKey(&quot;cours.id&quot;), primary_key=True)
+    stagiaire_id: Mapped[int] = mapped_column(Integer, ForeignKey(&quot;stagiaires.id&quot;), primary_key=True)
+    date_inscription: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    note: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Accès aux objets liés
+    cours: Mapped[&quot;Cours&quot;] = relationship(&quot;Cours&quot;, back_populates=&quot;inscriptions&quot;)
+    stagiaire: Mapped[&quot;Stagiaire&quot;] = relationship(&quot;Stagiaire&quot;, back_populates=&quot;inscriptions&quot;)
+
+
+class Formateur(Base):
+    __tablename__ = &quot;formateurs&quot;
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    nom: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    specialite: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    date_inscription: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    cours: Mapped[list[&quot;Cours&quot;]] = relationship(&quot;Cours&quot;, back_populates=&quot;formateur&quot;,
+                                                 cascade=&quot;all, delete-orphan&quot;)
+
+
+class Cours(Base):
+    __tablename__ = &quot;cours&quot;
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    titre: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text, default=&quot;&quot;)
+    prix: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    duree_heures: Mapped[int] = mapped_column(Integer, nullable=False)
+    publie: Mapped[bool] = mapped_column(Boolean, default=False)
+    date_creation: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    formateur_id: Mapped[int] = mapped_column(Integer, ForeignKey(&quot;formateurs.id&quot;), nullable=False)
+
+    formateur: Mapped[&quot;Formateur&quot;] = relationship(&quot;Formateur&quot;, back_populates=&quot;cours&quot;)
+    inscriptions: Mapped[list[&quot;Inscription&quot;]] = relationship(&quot;Inscription&quot;, back_populates=&quot;cours&quot;)
+
+
+class Stagiaire(Base):
+    __tablename__ = &quot;stagiaires&quot;
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    nom: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    date_inscription: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    inscriptions: Mapped[list[&quot;Inscription&quot;]] = relationship(&quot;Inscription&quot;, back_populates=&quot;stagiaire&quot;)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 4 — Créer les tables</strong></p>
+<div class="code-block"><pre><code class="language-python"># create_tables.py
+from database import engine, Base
+import models  # Importer pour enregistrer les modèles
+
+Base.metadata.create_all(bind=engine)
+print(&quot;Tables créées !&quot;)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash">python create_tables.py
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p><strong>Étape 5 — Initialiser Alembic</strong></p>
+<div class="code-block"><pre><code class="language-bash">alembic init alembic
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Modifier <code>alembic/env.py</code> :</p>
+<div class="code-block"><pre><code class="language-python">from database import Base
+import models  # Charge tous les modèles
+target_metadata = Base.metadata
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Modifier <code>alembic.ini</code> :</p>
+<div class="code-block"><pre><code class="language-ini">sqlalchemy.url = sqlite:///./cours.db
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash">alembic revision --autogenerate -m &quot;schema_initial&quot;
+alembic upgrade head
+alembic history  # Vérifier que la migration est appliquée
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<hr /></div></details>
+</div>
+<div class="exercice">
+<h3>Exercice 2 — Requêtes CRUD</h3>
+<p>Écrivez un script Python <code>seed.py</code> qui peuple la base et effectue des requêtes.</p>
+<p><strong>Opérations à implémenter :</strong></p>
+<ol>
+<li>Créer 2 formateurs, 3 cours, 4 stagiaires</li>
+<li>Inscrire 3 stagiaires au cours 1 et 2 stagiaires au cours 2</li>
+<li>Lister tous les cours publiés triés par prix croissant</li>
+<li>Compter le nombre d'inscrits par cours</li>
+<li>Trouver tous les stagiaires inscrits à un cours donné</li>
+</ol>
+<p><strong>Critères de validation :</strong></p>
+<ul>
+<li>Le script <code>python seed.py</code> s'exécute sans erreur</li>
+<li>Chaque opération utilise la syntaxe SQLAlchemy ORM 2.0 (<code>select(...)</code>)</li>
+<li>La requête de comptage utilise <code>func.count()</code></li>
+</ul>
+<details class="aide"><summary>Aide — pas à pas guidé</summary><div class="aide-body"><p><strong>Créer <code>seed.py</code></strong></p>
+<div class="code-block"><pre><code class="language-python"># seed.py
+from sqlalchemy import select, func
+from database import SessionLocal, engine, Base
+import models
+from models import Formateur, Cours, Stagiaire, Inscription
+from datetime import datetime
+
+Base.metadata.create_all(bind=engine)
+db = SessionLocal()
+
+try:
+    # 1. Créer 2 formateurs
+    f1 = Formateur(nom=&quot;Alice Martin&quot;, email=&quot;alice@dawan.fr&quot;, specialite=&quot;Python&quot;)
+    f2 = Formateur(nom=&quot;Bob Dupont&quot;,   email=&quot;bob@dawan.fr&quot;,   specialite=&quot;DevOps&quot;)
+    db.add_all([f1, f2])
+    db.commit()
+    db.refresh(f1) ; db.refresh(f2)
+
+    # 2. Créer 3 cours
+    c1 = Cours(titre=&quot;Python Initiation&quot;, prix=975, duree_heures=35, publie=True, formateur_id=f1.id)
+    c2 = Cours(titre=&quot;FastAPI + ORM&quot;,    prix=975, duree_heures=35, publie=True, formateur_id=f1.id)
+    c3 = Cours(titre=&quot;Docker&quot;,           prix=975, duree_heures=21, publie=False, formateur_id=f2.id)
+    db.add_all([c1, c2, c3])
+    db.commit()
+    db.refresh(c1) ; db.refresh(c2) ; db.refresh(c3)
+
+    # 3. Créer 4 stagiaires
+    s1 = Stagiaire(nom=&quot;Charlie&quot;,  email=&quot;charlie@ex.fr&quot;)
+    s2 = Stagiaire(nom=&quot;Diane&quot;,    email=&quot;diane@ex.fr&quot;)
+    s3 = Stagiaire(nom=&quot;Eve&quot;,      email=&quot;eve@ex.fr&quot;)
+    s4 = Stagiaire(nom=&quot;Frank&quot;,    email=&quot;frank@ex.fr&quot;)
+    db.add_all([s1, s2, s3, s4])
+    db.commit()
+    for s in [s1, s2, s3, s4]:
+        db.refresh(s)
+
+    # 4. Inscrire 3 stagiaires au cours 1, 2 au cours 2
+    for stagiaire in [s1, s2, s3]:
+        db.add(Inscription(cours_id=c1.id, stagiaire_id=stagiaire.id))
+    for stagiaire in [s2, s4]:
+        db.add(Inscription(cours_id=c2.id, stagiaire_id=stagiaire.id))
+    db.commit()
+
+    # 5. Lister les cours publiés triés par prix croissant
+    print(&quot;\n--- Cours publiés ---&quot;)
+    stmt = select(Cours).where(Cours.publie == True).order_by(Cours.prix)
+    for cours in db.execute(stmt).scalars().all():
+        print(f&quot;  {cours.titre} — {cours.prix} € — {cours.duree_heures}h&quot;)
+
+    # 6. Compter les inscrits par cours
+    print(&quot;\n--- Inscrits par cours ---&quot;)
+    stmt = (
+        select(Cours.titre, func.count(Inscription.stagiaire_id).label(&quot;nb&quot;))
+        .join(Inscription, Inscription.cours_id == Cours.id)
+        .group_by(Cours.titre)
+    )
+    for titre, nb in db.execute(stmt).all():
+        print(f&quot;  {titre} : {nb} inscrits&quot;)
+
+    # 7. Stagiaires inscrits au cours 1
+    print(f&quot;\n--- Stagiaires du cours '{c1.titre}' ---&quot;)
+    stmt = (
+        select(Stagiaire)
+        .join(Inscription, Inscription.stagiaire_id == Stagiaire.id)
+        .where(Inscription.cours_id == c1.id)
+    )
+    for st in db.execute(stmt).scalars().all():
+        print(f&quot;  {st.nom} ({st.email})&quot;)
+
+finally:
+    db.close()
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block"><pre><code class="language-bash">python seed.py
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+<p>Résultat attendu :</p>
+<div class="code-block"><pre><code>--- Cours publiés ---
+  Python Initiation — 975 € — 35h
+  FastAPI + ORM — 975 € — 35h
+
+--- Inscrits par cours ---
+  Python Initiation : 3 inscrits
+  FastAPI + ORM : 2 inscrits
+
+--- Stagiaires du cours 'Python Initiation' ---
+  Charlie (charlie@ex.fr)
+  Diane (diane@ex.fr)
+  Eve (eve@ex.fr)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copier</button></div></div></details>
+</div>
+</div>
+
+<div id="tab-quiz" class="tab-content">
+<div id="quiz-container">
+<div class="quiz-question" id="q1">
+  <h4>Question 1 — Que signifie le terme <strong>impedance objet-relationnel</strong> dans le contexte des ORMs ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(1,'a')">A) La lenteur des requêtes SQL sur de grands volumes de données</button>
+    <button class="quiz-option" onclick="answer(1,'b')">B) Le décalage entre le paradigme objet (classes, attributs) et le paradigme relationnel (tables, colonnes)</button>
+    <button class="quiz-option" onclick="answer(1,'c')">C) L'incompatibilité entre SQLAlchemy et les bases NoSQL</button>
+    <button class="quiz-option" onclick="answer(1,'d')">D) La difficulté d'écrire du SQL portable entre PostgreSQL et MySQL</button>
+  </div>
+  <div class="quiz-feedback" id="fb1"></div>
+</div>
+<div class="quiz-question" id="q2">
+  <h4>Question 2 — Quelle est la différence entre <code>SQLAlchemy Core</code> et <code>SQLAlchemy ORM</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(2,'a')">A) Core est pour PostgreSQL, ORM est pour SQLite</button>
+    <button class="quiz-option" onclick="answer(2,'b')">B) Core fournit un SQL Expression Language proche du SQL ; ORM ajoute le mapping objet-relationnel avec des classes Python</button>
+    <button class="quiz-option" onclick="answer(2,'c')">C) Core est la version 1.x, ORM est la version 2.x</button>
+    <button class="quiz-option" onclick="answer(2,'d')">D) Core est synchrone, ORM est asynchrone</button>
+  </div>
+  <div class="quiz-feedback" id="fb2"></div>
+</div>
+<div class="quiz-question" id="q3">
+  <h4>Question 3 — Pourquoi ajouter <code>connect_args={"check_same_thread": False}</code> lors de la création d'un Engine SQLite ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(3,'a')">A) Pour activer le mode WAL de SQLite</button>
+    <button class="quiz-option" onclick="answer(3,'b')">B) Pour autoriser plusieurs threads à partager la même connexion SQLite, nécessaire avec FastAPI</button>
+    <button class="quiz-option" onclick="answer(3,'c')">C) Pour désactiver la vérification de type des colonnes</button>
+    <button class="quiz-option" onclick="answer(3,'d')">D) Pour activer les index automatiques</button>
+  </div>
+  <div class="quiz-feedback" id="fb3"></div>
+</div>
+<div class="quiz-question" id="q4">
+  <h4>Question 4 — Que se passe-t-il si on accède à l'attribut <code>auteur</code> d'un article <strong>après</strong> que la Session est fermée ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(4,'a')">A) SQLAlchemy ouvre automatiquement une nouvelle session</button>
+    <button class="quiz-option" onclick="answer(4,'b')">B) L'attribut retourne <code>None</code></button>
+    <button class="quiz-option" onclick="answer(4,'c')">C) SQLAlchemy lève une <code>DetachedInstanceError</code></button>
+    <button class="quiz-option" onclick="answer(4,'d')">D) L'attribut retourne la valeur en cache de la session précédente</button>
+  </div>
+  <div class="quiz-feedback" id="fb4"></div>
+</div>
+<div class="quiz-question" id="q5">
+  <h4>Question 5 — Dans un modèle SQLAlchemy, quelle est la différence entre <code>default=True</code> et <code>server_default="true"</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(5,'a')">A) Aucune différence — les deux produisent le même résultat</button>
+    <button class="quiz-option" onclick="answer(5,'b')">B) <code>default</code> est évalué côté Python ; <code>server_default</code> est évalué par la base de données</button>
+    <button class="quiz-option" onclick="answer(5,'c')">C) <code>default</code> ne fonctionne qu'avec SQLite ; <code>server_default</code> avec PostgreSQL</button>
+    <button class="quiz-option" onclick="answer(5,'d')">D) <code>server_default</code> est plus performant car il utilise le cache de la base</button>
+  </div>
+  <div class="quiz-feedback" id="fb5"></div>
+</div>
+<div class="quiz-question" id="q6">
+  <h4>Question 6 — Pour modéliser une relation n-à-n entre <code>Article</code> et <code>Tag</code> dans SQLAlchemy, qu'est-ce qui est requis ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(6,'a')">A) Deux <code>ForeignKey</code> dans le modèle <code>Article</code></button>
+    <button class="quiz-option" onclick="answer(6,'b')">B) Un modèle intermédiaire <code>ArticleTag</code> avec deux colonnes PK</button>
+    <button class="quiz-option" onclick="answer(6,'c')">C) Une table d'association définie avec <code>Table()</code> et référencée via <code>secondary</code> dans <code>relationship()</code></button>
+    <button class="quiz-option" onclick="answer(6,'d')">D) Un champ <code>tags: JSON</code> dans <code>Article</code> contenant les IDs des tags</button>
+  </div>
+  <div class="quiz-feedback" id="fb6"></div>
+</div>
+<div class="quiz-question" id="q7">
+  <h4>Question 7 — Quelle méthode SQLAlchemy recharge les attributs générés par la base (id auto-incrémenté, valeurs <code>server_default</code>) dans l'objet Python après un <code>commit()</code> ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(7,'a')">A) <code>db.sync(objet)</code></button>
+    <button class="quiz-option" onclick="answer(7,'b')">B) <code>db.reload(objet)</code></button>
+    <button class="quiz-option" onclick="answer(7,'c')">C) <code>db.refresh(objet)</code></button>
+    <button class="quiz-option" onclick="answer(7,'d')">D) <code>objet.reload(db)</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb7"></div>
+</div>
+<div class="quiz-question" id="q8">
+  <h4>Question 8 — Dans la syntaxe SQLAlchemy 2.0, quelle est la façon correcte de récupérer tous les articles publiés ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(8,'a')">A) <code>session.query(Article).filter_by(publie=True).all()</code></button>
+    <button class="quiz-option" onclick="answer(8,'b')">B) <code>session.execute(select(Article).where(Article.publie == True)).scalars().all()</code></button>
+    <button class="quiz-option" onclick="answer(8,'c')">C) <code>Article.objects.filter(publie=True)</code></button>
+    <button class="quiz-option" onclick="answer(8,'d')">D) <code>session.find(Article, publie=True)</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb8"></div>
+</div>
+<div class="quiz-question" id="q9">
+  <h4>Question 9 — Quel outil SQLAlchemy est utilisé pour gérer les migrations de schéma de base de données (ajout de colonnes, modification de contraintes) ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(9,'a')">A) <code>Base.metadata.migrate()</code></button>
+    <button class="quiz-option" onclick="answer(9,'b')">B) <code>sqlalchemy-migrate</code></button>
+    <button class="quiz-option" onclick="answer(9,'c')">C) <code>Alembic</code></button>
+    <button class="quiz-option" onclick="answer(9,'d')">D) <code>Flask-Migrate</code></button>
+  </div>
+  <div class="quiz-feedback" id="fb9"></div>
+</div>
+<div class="quiz-question" id="q10">
+  <h4>Question 10 — Que fait <code>model_dump(exclude_none=True)</code> d'un modèle Pydantic dans le contexte d'un PATCH SQLAlchemy ?</h4>
+  <div class="quiz-options">
+    <button class="quiz-option" onclick="answer(10,'a')">A) Supprime les colonnes None de la table SQL</button>
+    <button class="quiz-option" onclick="answer(10,'b')">B) Retourne uniquement les champs fournis (non-None) pour ne mettre à jour que les attributs envoyés par le client</button>
+    <button class="quiz-option" onclick="answer(10,'c')">C) Vérifie que les valeurs None ne violent pas les contraintes NOT NULL</button>
+    <button class="quiz-option" onclick="answer(10,'d')">D) Convertit le modèle Pydantic en objet SQLAlchemy directement</button>
+  </div>
+  <div class="quiz-feedback" id="fb10"></div>
+</div>
+</div>
+<div class="quiz-score" id="quiz-score">
+  <div class="score-num" id="score-display">0 / 10</div>
+  <p id="score-msg"></p>
+  <button class="btn-restart" onclick="restartQuiz()">Recommencer</button>
+</div>
+</div>
+  </div>
+</div>
+
+<script>
+// ─── THEME ──────────────────────────────────────────────────────────────────
+(function () {
+  const root = document.documentElement;
+  const stored = localStorage.getItem('dawan-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  updateToggleLabel();
+})();
+
+function updateToggleLabel() {
+  const current = document.documentElement.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.getElementById('theme-icon').textContent = current === 'dark' ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = current === 'dark' ? 'Sombre' : 'Clair';
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') ||
+    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('dawan-theme', next);
+  updateToggleLabel();
+}
+
+// ─── TABS ───────────────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.side-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  document.querySelector('.content').scrollTo({ top: 0, behavior: 'instant' });
+}
+
+// ─── COPY CODE ──────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.previousElementSibling;
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = 'Copié !'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── QUIZ ────────────────────────────────────────────────────────────────────
+const answers = { 1:'b', 2:'b', 3:'b', 4:'c', 5:'b', 6:'c', 7:'c', 8:'b', 9:'c', 10:'b' };
+const feedbacks = {
+  1: { b: "Exact ! L'impedance objet-relationnel désigne la difficulté de faire correspondre les objets Python (héritage, méthodes, composition) avec les tables SQL (lignes, colonnes, jointures) (section \"Le problème de l'impedance objet-relationnel\").", wrong: "Non. La bonne réponse est B) Le décalage entre le paradigme objet (classes, attributs) et le paradigme relationnel (tables, colonnes) — L'impedance objet-relationnel désigne la difficulté de faire correspondre les objets Python (héritage, méthodes, composition) avec les tables SQL (lignes, colonnes, jointures) (section \"Le problème de l'impedance objet-relationnel\")." },
+  2: { b: "Exact ! Core manipule des tables et des colonnes ; ORM ajoute la correspondance classes/tables et le cycle de vie des objets (section \"SQLAlchemy Core vs SQLAlchemy ORM\").", wrong: "Non. La bonne réponse est B) Core fournit un SQL Expression Language proche du SQL ; ORM ajoute le mapping objet-relationnel avec des classes Python — Core manipule des tables et des colonnes ; ORM ajoute la correspondance classes/tables et le cycle de vie des objets (section \"SQLAlchemy Core vs SQLAlchemy ORM\")." },
+  3: { b: "Exact ! SQLite interdit par défaut de partager une connexion entre threads. FastAPI utilise plusieurs threads, d'où la nécessité de ce paramètre (section \"Engine — connexion à la base de données\").", wrong: "Non. La bonne réponse est B) Pour autoriser plusieurs threads à partager la même connexion SQLite, nécessaire avec FastAPI — SQLite interdit par défaut de partager une connexion entre threads. FastAPI utilise plusieurs threads, d'où la nécessité de ce paramètre (section \"Engine — connexion à la base de données\")." },
+  4: { c: "Exact ! Une fois la session fermée, les objets sont \"detached\" et ne peuvent plus charger leurs relations lazy. Le schéma du cycle de vie illustre cet état (section \"Cycle de vie d'un objet SQLAlchemy dans la Session\").", wrong: "Non. La bonne réponse est C) SQLAlchemy lève une <code>DetachedInstanceError</code> — Une fois la session fermée, les objets sont \"detached\" et ne peuvent plus charger leurs relations lazy. Le schéma du cycle de vie illustre cet état (section \"Cycle de vie d'un objet SQLAlchemy dans la Session\")." },
+  5: { b: "Exact ! <code>default</code> est appliqué par SQLAlchemy avant l'INSERT ; <code>server_default</code> est une valeur DEFAULT SQL interprétée par le moteur de base de données (section \"Attributs clés de mapped_column\").", wrong: "Non. La bonne réponse est B) <code>default</code> est évalué côté Python ; <code>server_default</code> est évalué par la base de données — <code>default</code> est appliqué par SQLAlchemy avant l'INSERT ; <code>server_default</code> est une valeur DEFAULT SQL interprétée par le moteur de base de données (section \"Attributs clés de mapped_column\")." },
+  6: { c: "Exact ! La relation n-à-n nécessite une table pivot. <code>secondary=articles_tags</code> dans <code>relationship()</code> indique à SQLAlchemy d'utiliser cette table pour les jointures (section \"Relation n-à-n\").", wrong: "Non. La bonne réponse est C) Une table d'association définie avec <code>Table()</code> et référencée via <code>secondary</code> dans <code>relationship()</code> — La relation n-à-n nécessite une table pivot. <code>secondary=articles_tags</code> dans <code>relationship()</code> indique à SQLAlchemy d'utiliser cette table pour les jointures (section \"Relation n-à-n\")." },
+  7: { c: "Exact ! <code>db.refresh()</code> relit l'objet depuis la base de données pour synchroniser les champs générés côté serveur (section \"Créer des enregistrements\").", wrong: "Non. La bonne réponse est C) <code>db.refresh(objet)</code> — <code>db.refresh()</code> relit l'objet depuis la base de données pour synchroniser les champs générés côté serveur (section \"Créer des enregistrements\")." },
+  8: { b: "Exact ! C'est la syntaxe ORM 2.0. La syntaxe <code>session.query()</code> est la 1.x (legacy, toujours supportée) (section \"Lire des enregistrements\").", wrong: "Non. La bonne réponse est B) <code>session.execute(select(Article).where(Article.publie == True)).scalars().all()</code> — C'est la syntaxe ORM 2.0. La syntaxe <code>session.query()</code> est la 1.x (legacy, toujours supportée) (section \"Lire des enregistrements\")." },
+  9: { c: "Exact ! Alembic est l'outil de migration officiel de SQLAlchemy. <code>Base.metadata.create_all()</code> ne gère pas les migrations — il ne peut que créer les tables si elles n'existent pas (section \"Migrations avec Alembic\").", wrong: "Non. La bonne réponse est C) <code>Alembic</code> — Alembic est l'outil de migration officiel de SQLAlchemy. <code>Base.metadata.create_all()</code> ne gère pas les migrations — il ne peut que créer les tables si elles n'existent pas (section \"Migrations avec Alembic\")." },
+  10: { b: "Exact ! <code>exclude_none=True</code> filtre les champs <code>None</code>, ce qui permet un PATCH partiel : seuls les attributs fournis par le client sont propagés à <code>db.update()</code> (section \"Modifier des enregistrements\").", wrong: "Non. La bonne réponse est B) Retourne uniquement les champs fournis (non-None) pour ne mettre à jour que les attributs envoyés par le client — <code>exclude_none=True</code> filtre les champs <code>None</code>, ce qui permet un PATCH partiel : seuls les attributs fournis par le client sont propagés à <code>db.update()</code> (section \"Modifier des enregistrements\")." }
+};
+const QUIZ_TOTAL = 10;
+let score = 0;
+let answered = {};
+
+function answer(qNum, choice) {
+  if (answered[qNum]) return;
+  answered[qNum] = true;
+  score += (choice === answers[qNum]) ? 1 : 0;
+  const qEl = document.getElementById('q' + qNum);
+  qEl.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = true;
+    const ltr = btn.textContent.trim()[0].toLowerCase();
+    if (ltr === answers[qNum]) btn.classList.add('correct');
+    else if (ltr === choice) btn.classList.add('wrong');
+  });
+  const fb = feedbacks[qNum];
+  document.getElementById('fb' + qNum).textContent = (choice === answers[qNum]) ? fb[answers[qNum]] : fb.wrong;
+  if (Object.keys(answered).length === QUIZ_TOTAL) showScore();
+}
+
+function showScore() {
+  const el = document.getElementById('quiz-score');
+  el.style.display = 'block';
+  document.getElementById('score-display').textContent = score + ' / ' + QUIZ_TOTAL;
+  const ratio = score / QUIZ_TOTAL;
+  let msg;
+  if (ratio === 1) msg = 'Parfait ! Toutes les réponses sont correctes.';
+  else if (ratio >= .8) msg = 'Très bien ! Vous maîtrisez l\'essentiel.';
+  else if (ratio >= .6) msg = 'Pas mal ! Relisez les points manqués.';
+  else if (ratio >= .4) msg = 'Quelques notions à revoir.';
+  else msg = 'Revoyez le cours avant de continuer.';
+  document.getElementById('score-msg').textContent = msg;
+}
+
+function restartQuiz() {
+  score = 0; answered = {};
+  document.getElementById('quiz-score').style.display = 'none';
+  document.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('correct','wrong');
+  });
+  document.querySelectorAll('.quiz-feedback').forEach(fb => fb.textContent = '');
+}
+</script>
+</body>
+</html>
