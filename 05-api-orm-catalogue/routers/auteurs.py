@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Path, Query, HTTPException, Depends
 from schemas.auteurs import AuteurCreation, AuteurResponse
+from sqlalchemy.orm import Session
+from database import get_db
+from exceptions import RessourceNonTrouveException
 
 router = APIRouter(prefix="/auteurs", tags=["Auteurs"])
 
@@ -8,10 +11,6 @@ def list_auteurs(
     page: int = Query(1, gt=0, description="Numéro de la page (doit être un entier positif)"),
     taille: int = Query(10, gt=0, le=100, description="Nombre d'auteurs par page (doit être un entier positif entre 1 et 100)")
 ):
-    """
-    GET /auteurs → page=1, taille=10
-    GET /auteurs?page=2&taille=5 → page=2, taille=5
-    """
     return {
         "page": page,
         "taille": taille,
@@ -26,3 +25,21 @@ def create_auteur(auteur: AuteurCreation):
     return {
         "id": 1, **auteur.model_dump()  # Retourne l'auteur créé avec un ID fictif
     }
+
+## route pour récupérer un auteur
+## avec le schéma de réponse
+## la session SqlAlchemy
+@router.get("/{auteur_id}", response_model=AuteurResponse)
+def get_auteur(
+    auteur_id: int = Path(gt=0, description="L'ID de l'auteur doit être un entier positif"),
+    db: Session = Depends(get_db)
+):
+    """Retourne un auteur fictif identifié par son ID entier."""
+    auteur = get_auteur(db, auteur_id)
+    if auteur is None:
+        raise RessourceNonTrouveException(
+            id=auteur_id, 
+            resource_type="auteur"
+        )
+    
+    return auteur
