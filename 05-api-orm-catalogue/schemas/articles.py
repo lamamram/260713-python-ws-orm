@@ -6,23 +6,21 @@ from datetime import datetime
 class ArticleCreation(BaseModel):
     titre: str = Field(min_length=3, max_length=200)
     contenu: str = Field(min_length=10)
-    categorie: Optional[str] = None
 
 # ------------ pydantic responses schémas ------------
 
 class TagSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
     id: int
     nom: str
 
 class AuteurSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
     id: int
     username: str
 
 class ArticleResponse(BaseModel):
     # pour convertir les objets SQLAlchemy en dictionnaires, on utilise la config from_attributes=True
-    model_config = ConfigDict(from_attributes=True)
+    # semble être déprécié car les modèles Sqlalchemy sont convertis en dictionnaire dans la réponse
+    # model_config = ConfigDict(from_attributes=True)
     id: int
     titre: str
     contenu: str

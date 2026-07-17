@@ -25,7 +25,7 @@ engine = create_engine(
     pool_size=15,  # nombre maximum de connexions persistentes dispos dans le pool pour les utilisateurs
     max_overflow=5,  # nombre maximum de connexions supplémentaires au-delà du pool_size en cas de pic
     # mode debug: affiche les requêtes SQL générées par SQLAlchemy dans la console
-    echo=True
+    # echo=True
 )
 
 SessionLocal = sessionmaker(
