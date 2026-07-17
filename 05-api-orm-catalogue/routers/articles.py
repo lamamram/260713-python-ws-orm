@@ -88,12 +88,16 @@ def update_article(
             id=article_id, 
             resource_type="article"
         )
-    # fastidieux si on a beaucoup de champs, on peut utiliser un dictionnaire pour faire un update dynamique
+    ## fastidieux si on a beaucoup de champs, on peut utiliser un dictionnaire pour faire un update dynamique
     # article.titre = req_article.titre
     # article.contenu = req_article.contenu
     # article.publie = req_article.publie
-    # update dynamique
+    
+    ## update dynamique
+    # rappel: model_dump() retourne un dictionnaire avec les champs et valeurs du modèle Pydantic
+    # exclude_none=True permet d'exclure les champs qui sont None, donc on ne met à jour que les champs fournis dans la requête
     for key, value in req_article.model_dump(exclude_none=True).items():
         setattr(article, key, value)
+    # UPDATE articles SET titre=..., contenu=..., publie=... WHERE id=...
     db.commit()
     return article
