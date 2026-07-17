@@ -13,10 +13,21 @@ class AuteurCreation(BaseModel):
 
 # ------------ pydantic responses schémas ------------
 
+class TagSchema(BaseModel):
+    id: int
+    nom: str
+
+class ProfileSchema(BaseModel):
+    id: int
+    bio: str
+    avatar_url: str
+
 class AuteurResponse(BaseModel):
     id: int
-    nom: str = Field(min_length=2, max_length=100)
+    username: str = Field(min_length=2, max_length=100)
     email: EmailStr                                    # Valide le format email
-    age: int = Field(ge=18, le=120)
-    tags: List[str] = Field(default_factory=list)     # Liste vide par défaut à la place de [""]
-    biographie: str = Field(default="", max_length=2000)
+    active: bool
+    is_admin: bool
+    created_at: datetime
+    tags: List[TagSchema] = []     # Liste vide par défaut à la place de [""]
+    profil: ProfileSchema
