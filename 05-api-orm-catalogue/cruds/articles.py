@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from database import Article
 
-def get_article(
+def get_article_id(
     db: Session,
     article_id: int 
 ):

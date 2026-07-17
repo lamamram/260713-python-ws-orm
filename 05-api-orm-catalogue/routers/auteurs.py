@@ -3,6 +3,7 @@ from schemas.auteurs import AuteurCreation, AuteurResponse
 from sqlalchemy.orm import Session
 from database import get_db
 from exceptions import RessourceNonTrouveException
+from cruds.auteurs import get_auteur_id
 
 router = APIRouter(prefix="/auteurs", tags=["Auteurs"])
 
@@ -35,7 +36,7 @@ def get_auteur(
     db: Session = Depends(get_db)
 ):
     """Retourne un auteur fictif identifié par son ID entier."""
-    auteur = get_auteur(db, auteur_id)
+    auteur = get_auteur_id(db, auteur_id)
     if auteur is None:
         raise RessourceNonTrouveException(
             id=auteur_id, 

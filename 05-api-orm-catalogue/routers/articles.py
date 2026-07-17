@@ -5,7 +5,7 @@ from dependencies import get_query_params, GetQueryParams
 from schemas.articles import ArticleCreation, ArticleResponse, ArticleUpdate
 
 # isoler les requêtes SQL dans un module cruds/articles.py pour séparer la logique métier de la logique de persistance
-from cruds.articles import get_article
+from cruds.articles import get_article_id
 from typing import List
 
 from sqlalchemy import select
