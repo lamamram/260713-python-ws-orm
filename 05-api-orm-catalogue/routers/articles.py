@@ -19,12 +19,18 @@ def list_articles(
     params: dict = Depends(get_query_params),
     db: Session = Depends(get_db)
 ):
+    auteur_id=1
     # page1 == offset=0, limit=10
     # page2 == offset=10, limit=10
     # (page_num - 1) * limit
     offset, limit = (params["page"] - 1) * params["taille"], params["taille"]
     ## SELECT * FROM articles OFFSET 0 LIMIT 10
-    articles = db.execute(select(Article).offset(offset).limit(limit)).scalars().all()
+    articles = db.execute(
+            select(Article
+            ).where(Article.auteur_id == auteur_id
+            ).offset(offset
+            ).limit(limit)
+        ).scalars().all()
     return articles
 
 @router.post("/", status_code=201, response_model=ArticleResponse)
