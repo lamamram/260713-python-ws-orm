@@ -3,6 +3,9 @@ from datetime import datetime
 from exceptions import RessourceNonTrouveException
 from dependencies import get_query_params, GetQueryParams
 from schemas.articles import ArticleCreation, ArticleResponse, ArticleUpdate
+
+# isoler les requêtes SQL dans un module cruds/articles.py pour séparer la logique métier de la logique de persistance
+from cruds.articles import get_article
 from typing import List
 
 from sqlalchemy import select
@@ -51,7 +54,7 @@ def get_article(
     db: Session = Depends(get_db)
 ):
     """Retourne un article fictif identifié par son ID entier."""
-    article = db.get(Article, article_id)
+    article = get_article(db, article_id)
     if article is None:
         raise RessourceNonTrouveException(
             id=article_id, 
