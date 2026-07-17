@@ -34,3 +34,12 @@ class ArticleResponse(BaseModel):
     # on utilise un schéma imbriqué pour l'auteur et les tags
     auteur: AuteurSchema          # Relation imbriquée
     tags: List[TagSchema] = []    # Liste de tag
+
+class ArticleCountByUser(BaseModel):
+    username: str
+    nb_articles: int
+
+class ArticleCountPublieByUser(BaseModel):
+    username: str
+    publies: int
+    brouillons: int

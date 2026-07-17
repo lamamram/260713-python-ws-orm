@@ -25,7 +25,7 @@ engine = create_engine(
     pool_size=15,  # nombre maximum de connexions persistentes dispos dans le pool pour les utilisateurs
     max_overflow=5,  # nombre maximum de connexions supplémentaires au-delà du pool_size en cas de pic
     # mode debug: affiche les requêtes SQL générées par SQLAlchemy dans la console
-    # echo=True
+    echo=True
 )
 
 SessionLocal = sessionmaker(
@@ -126,9 +126,9 @@ class Article(Base):
     ## relations: ce ne sont pas des colonnes de la table, on les utilise en python
     # sur un objet article = Article(), on a article.auteur
     # grâce à back_populates, on peut faire l'inverse: sur un objet utilisateur = Utilisateur(), on a utilisateur.articles
-    auteur: Mapped["Utilisateur"] = relationship(back_populates="articles")
+    auteur: Mapped["Utilisateur"] = relationship(back_populates="articles", lazy="joined")  # lazy="joined" permet de charger l'auteur en même temps que l'article (jointure SQL)
     tags: Mapped[List["Tag"]] = relationship(
-        secondary=articles_tags, back_populates="articles"
+        secondary=articles_tags, back_populates="articles", lazy="selectin"
     )
 
 
