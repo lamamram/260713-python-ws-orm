@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List
 from datetime import datetime
 
 # ------------ pydantic requests schémas ------------
@@ -10,12 +10,24 @@ class ArticleCreation(BaseModel):
 
 # ------------ pydantic responses schémas ------------
 
+class TagSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    nom: str
+
+class AuteurSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    username: str
+
 class ArticleResponse(BaseModel):
+    # pour convertir les objets SQLAlchemy en dictionnaires, on utilise la config from_attributes=True
+    model_config = ConfigDict(from_attributes=True)
     id: int
     titre: str
     contenu: str
     publie: bool = False
-    date_creation: datetime
-    categorie: Optional[str] = None
-    # nb-vues est caclulé par le serveur, donc on gère ici ses contraintes
-    nb_vues: int = Field(default=0, ge=0)
+    created_at: datetime
+    # on utilise un schéma imbriqué pour l'auteur et les tags
+    auteur: AuteurSchema          # Relation imbriquée
+    tags: List[TagSchema] = []    # Liste de tag
