@@ -77,3 +77,23 @@ gen = my_range(1000)
 print(getsizeof(gen))  # 192, 192
 r = range(1000)
 print(getsizeof(r))    # 48, 48
+
+# ------------------- getattr et setattr -------------------
+
+class Truc:
+    pass
+
+t = Truc()
+setattr(t, "param", 10)
+
+print(t.param)  # 10
+print(getattr(t, "param"))  # 10
+
+print("-"*20)
+
+fields = {"opt1": 1, "opt2": 2, "opt3": 3}
+for key, value in fields.items():
+    setattr(t, key, value)
+
+print(t.opt1)  # 1
+print(t.opt2)  # 2  

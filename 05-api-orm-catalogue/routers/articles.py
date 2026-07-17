@@ -26,7 +26,7 @@ def list_articles(
 
 @router.post("/", status_code=201, response_model=ArticleResponse)
 def create_article(
-    article: ArticleCreation,
+    req_article: ArticleCreation,
     db: Session = Depends(get_db)
 ):
     """
@@ -34,8 +34,8 @@ def create_article(
     {"titre": "Mon article", "contenu": "...", "publie": false}
     """
     new_article = Article(
-        titre=article.titre,
-        contenu=article.contenu,
+        titre=req_article.titre,
+        contenu=req_article.contenu,
         auteur_id=1  # pour l'instant, on met un auteur fictif
     )
     # insérer l'article dans la base de données
@@ -75,3 +75,24 @@ def delete_article(
     db.delete(article) 
     db.commit()
     return None
+
+@router.put("/{article_id}", response_model=ArticleResponse)
+def update_article(
+    req_article: ArticleCreation,
+    article_id: int = Path(gt=0, description="L'ID de l'article doit être un entier positif"),
+    db: Session = Depends(get_db),
+):
+    article = db.get(Article, article_id)
+    if article is None:
+        raise RessourceNonTrouveException(
+            id=article_id, 
+            resource_type="article"
+        )
+    # fastidieux si on a beaucoup de champs, on peut utiliser un dictionnaire pour faire un update dynamique
+    # article.titre = req_article.titre
+    # article.contenu = req_article.contenu
+    # article.publie = req_article.publie
+    # update dynamique
+    for key, value in req_article.model_dump(exclude_none=True).items():
+        pass
+    db.commit()
