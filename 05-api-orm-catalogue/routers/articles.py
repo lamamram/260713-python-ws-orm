@@ -2,7 +2,7 @@ from fastapi import APIRouter, Path, Query, HTTPException, Depends
 from datetime import datetime
 from exceptions import RessourceNonTrouveException
 from dependencies import get_query_params, GetQueryParams
-from schemas.articles import ArticleCreation, ArticleResponse
+from schemas.articles import ArticleCreation, ArticleResponse, ArticleUpdate
 from typing import List
 
 from sqlalchemy import select
@@ -78,7 +78,7 @@ def delete_article(
 
 @router.put("/{article_id}", response_model=ArticleResponse)
 def update_article(
-    req_article: ArticleCreation,
+    req_article: ArticleUpdate,
     article_id: int = Path(gt=0, description="L'ID de l'article doit être un entier positif"),
     db: Session = Depends(get_db),
 ):
@@ -94,5 +94,6 @@ def update_article(
     # article.publie = req_article.publie
     # update dynamique
     for key, value in req_article.model_dump(exclude_none=True).items():
-        pass
+        setattr(article, key, value)
     db.commit()
+    return article

@@ -7,6 +7,11 @@ class ArticleCreation(BaseModel):
     titre: str = Field(min_length=3, max_length=200)
     contenu: str = Field(min_length=10)
 
+class ArticleUpdate(BaseModel):
+    titre: str = Field(min_length=3, max_length=200)
+    contenu: str = Field(min_length=10)
+    publie: Optional[bool] = Field(default=None, description="Indique si l'article est publié ou non. Si None, ne pas modifier le statut de publication.")
+
 # ------------ pydantic responses schémas ------------
 
 class TagSchema(BaseModel):
